@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { User } from '@/modules/auth/entities/user.entity';
@@ -61,10 +61,12 @@ export class TokenService {
 
   /**
    * Generates a short-lived access JWT + opaque hashed refresh token
+   * Optionally accepts an EntityManager to execute within an active transaction.
    */
   async generateTokenPair(
     user: User,
     existingFamilyId?: string,
+    manager?: EntityManager,
   ): Promise<TokenPairResult> {
     const familyId = existingFamilyId || randomUUID();
     const refreshId = randomUUID();
@@ -101,7 +103,12 @@ export class TokenService {
       familyId,
       expiresAt,
     });
-    await this.refreshTokenRepository.save(tokenEntity);
+
+    if (manager) {
+      await manager.save(RefreshToken, tokenEntity);
+    } else {
+      await this.refreshTokenRepository.save(tokenEntity);
+    }
 
     return {
       accessToken,
@@ -133,9 +140,12 @@ export class TokenService {
 
     // Reuse detection: if token missing or already revoked/used, revoke the ENTIRE family!
     if (!tokenRecord || tokenRecord.isRevoked) {
-      if (tokenRecord?.familyId) {
+      // Use familyId from the record if available, otherwise fall back to
+      // the JWT payload — this covers the case where the record was deleted.
+      const familyId = tokenRecord?.familyId ?? payload.familyId;
+      if (familyId) {
         await this.refreshTokenRepository.update(
-          { familyId: tokenRecord.familyId },
+          { familyId },
           { isRevoked: true },
         );
       }

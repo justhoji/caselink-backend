@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  NotFoundException,
   HttpException,
   HttpStatus,
   ConflictException,
@@ -14,6 +15,10 @@ import { User } from '@/modules/auth/entities/user.entity';
 import { Otp } from '@/modules/auth/entities/otp.entity';
 import { Agency } from '@/modules/agencies/entities/agency.entity';
 import { RegisterOwnerDto } from '@/modules/auth/dto/register-owner.dto';
+import { RegisterSendOtpDto } from '@/modules/auth/dto/register-send-otp.dto';
+import { RegisterVerifyOtpDto } from '@/modules/auth/dto/register-verify-otp.dto';
+import { RegisterSetPasswordDto } from '@/modules/auth/dto/register-set-password.dto';
+import { RegisterCompleteDto } from '@/modules/auth/dto/register-complete.dto';
 import { LoginPasswordDto } from '@/modules/auth/dto/login-password.dto';
 import { SendOtpDto } from '@/modules/auth/dto/send-otp.dto';
 import { LoginOtpDto } from '@/modules/auth/dto/login-otp.dto';
@@ -30,6 +35,8 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Otp)
     private readonly otpRepository: Repository<Otp>,
+    @InjectRepository(Agency)
+    private readonly agencyRepository: Repository<Agency>,
     private readonly tokenService: TokenService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
@@ -54,23 +61,158 @@ export class AuthService {
   }
 
   /**
+   * Helper to normalize identifier strings (lowercase email, trim whitespace)
+   */
+  private normalizeIdentifier(identifier: string): string {
+    if (!identifier) return '';
+    const trimmed = identifier.trim();
+    return trimmed.includes('@') ? trimmed.toLowerCase() : trimmed;
+  }
+
+  /**
+   * Helper to format clean page address slug
+   */
+  private formatSlug(slug: string): string {
+    if (!slug) return '';
+    return slug
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9-]/g, '');
+  }
+
+  /**
    * Helper to find user by email or phone identifier
    */
   private async findByIdentifier(identifier: string): Promise<User | null> {
+    const clean = this.normalizeIdentifier(identifier);
     return this.userRepository.findOne({
-      where: [{ email: identifier }, { phone: identifier }],
+      where: [
+        { email: clean },
+        { phone: clean },
+        { email: identifier },
+        { phone: identifier },
+      ],
     });
   }
 
-  async registerOwner(dto: RegisterOwnerDto) {
-    const identifier = dto.email || dto.phone;
-    if (!identifier) {
+  // ==========================================
+  // ONBOARDING & REGISTRATION FLOW (4 STEPS)
+  // ==========================================
+
+  /**
+   * STEP 1: Send registration verification code to email/phone
+   */
+  async registerSendOtp(dto: RegisterSendOtpDto) {
+    const cleanIdentifier = this.normalizeIdentifier(dto.identifier);
+    if (!cleanIdentifier) {
+      throw new BadRequestException('Email or phone identifier is required.');
+    }
+
+    const existingUser = await this.findByIdentifier(cleanIdentifier);
+    if (existingUser) {
+      throw new ConflictException(
+        'Email or phone number is already registered. Please sign in.',
+      );
+    }
+
+    return this.sendOtp({
+      identifier: cleanIdentifier,
+      type: OtpType.VERIFY_ACCOUNT,
+    });
+  }
+
+  /**
+   * STEP 2: Verify the 6-digit OTP code received
+   */
+  async registerVerifyOtp(dto: RegisterVerifyOtpDto) {
+    const cleanIdentifier = this.normalizeIdentifier(dto.identifier);
+    await this.verifyOtpCode(cleanIdentifier, dto.code, OtpType.VERIFY_ACCOUNT);
+
+    return {
+      message: 'Contact verified successfully.',
+      verifiedIdentifier: cleanIdentifier,
+    };
+  }
+
+  /**
+   * STEP 3: Password setting phase
+   */
+  async registerSetPassword(dto: RegisterSetPasswordDto) {
+    const cleanIdentifier = this.normalizeIdentifier(dto.identifier);
+    if (!cleanIdentifier) {
+      throw new BadRequestException('Email or phone identifier is required.');
+    }
+
+    const existingUser = await this.findByIdentifier(cleanIdentifier);
+    if (existingUser) {
+      throw new ConflictException(
+        'Email or phone number is already registered.',
+      );
+    }
+
+    return {
+      message: 'Password set successfully for onboarding.',
+      identifier: cleanIdentifier,
+    };
+  }
+
+  /**
+   * Helper: Instant Slug Availability Check
+   */
+  async checkSlugAvailability(rawSlug: string) {
+    const cleanSlug = this.formatSlug(rawSlug);
+    if (!cleanSlug) {
+      throw new BadRequestException('Invalid page address slug.');
+    }
+
+    const existingAgency = await this.agencyRepository.findOne({
+      where: { slug: cleanSlug },
+    });
+
+    const isAvailable = !existingAgency;
+    return {
+      slug: cleanSlug,
+      fullDomain: `${cleanSlug}.caselink.uz`,
+      isAvailable,
+      message: isAvailable
+        ? `Page address '${cleanSlug}.caselink.uz' is available.`
+        : `Page address '${cleanSlug}.caselink.uz' is already taken.`,
+    };
+  }
+
+  /**
+   * STEP 4 / FINAL: Complete registration with agency name, unique page address & optional password
+   */
+  async registerComplete(dto: RegisterCompleteDto) {
+    const rawIdentifier = dto.email || dto.phone;
+    if (!rawIdentifier) {
       throw new BadRequestException('Either email or phone must be provided.');
     }
 
-    const existingUser = await this.findByIdentifier(identifier);
+    const cleanEmail = dto.email ? this.normalizeIdentifier(dto.email) : undefined;
+    const cleanPhone = dto.phone ? this.normalizeIdentifier(dto.phone) : undefined;
+    const cleanIdentifier = cleanEmail || cleanPhone || '';
+
+    const existingUser = await this.findByIdentifier(cleanIdentifier);
     if (existingUser) {
-      throw new ConflictException('Email or phone number already registered.');
+      throw new ConflictException(
+        'Email or phone number is already registered.',
+      );
+    }
+
+    // Format & validate unique page address slug
+    const cleanSlug = this.formatSlug(dto.slug);
+    if (!cleanSlug) {
+      throw new BadRequestException('Page address slug is required.');
+    }
+
+    const existingSlug = await this.agencyRepository.findOne({
+      where: { slug: cleanSlug },
+    });
+    if (existingSlug) {
+      throw new ConflictException(
+        `Page address '${cleanSlug}.caselink.uz' is already taken. Please choose another address.`,
+      );
     }
 
     let passwordHash: string | undefined;
@@ -79,25 +221,37 @@ export class AuthService {
     }
 
     return this.dataSource.transaction(async (manager) => {
+      // 1. Create Agency with unique page address slug
       const agency = manager.create(Agency, {
-        name: 'Caselink',
-        email: dto.email,
-        phone: dto.phone,
+        name: dto.agencyName || 'Caselink',
+        slug: cleanSlug,
+        email: cleanEmail,
+        phone: cleanPhone,
+        website: `https://${cleanSlug}.caselink.uz`,
       });
       const savedAgency = await manager.save(agency);
 
+      // 2. Create Owner User
       const user = manager.create(User, {
         agencyId: savedAgency.id,
         firstName: 'Agency',
         lastName: 'Owner',
-        email: dto.email,
-        phone: dto.phone,
+        email: cleanEmail,
+        phone: cleanPhone,
         passwordHash,
         role: StaffRole.OWNER,
+        isEmailVerified: Boolean(cleanEmail),
+        isPhoneVerified: Boolean(cleanPhone),
       });
       const savedUser = await manager.save(user);
 
-      const tokens = await this.tokenService.generateTokenPair(savedUser);
+      // 3. Issue JWT Token pair
+      const tokens = await this.tokenService.generateTokenPair(
+        savedUser,
+        undefined,
+        manager,
+      );
+
       return {
         user: {
           id: savedUser.id,
@@ -108,10 +262,39 @@ export class AuthService {
           phone: savedUser.phone,
           role: savedUser.role,
         },
+        agency: {
+          id: savedAgency.id,
+          name: savedAgency.name,
+          slug: savedAgency.slug,
+          fullDomain: `${savedAgency.slug}.caselink.uz`,
+          publicPageUrl: `https://${savedAgency.slug}.caselink.uz`,
+        },
         ...tokens,
       };
     });
   }
+
+  /**
+   * Backwards compatible registerOwner wrapper calling registerComplete
+   */
+  async registerOwner(dto: RegisterOwnerDto) {
+    const agencyName = (dto as any).agencyName || 'Caselink';
+    const defaultSlug =
+      agencyName.toLowerCase().replace(/[^a-z0-9]/g, '') +
+      Math.floor(1000 + Math.random() * 9000);
+
+    return this.registerComplete({
+      email: dto.email,
+      phone: dto.phone,
+      password: dto.password,
+      agencyName,
+      slug: defaultSlug,
+    });
+  }
+
+  // ==========================================
+  // AUTHENTICATION & LOGIN FLOWS
+  // ==========================================
 
   async loginWithPassword(dto: LoginPasswordDto) {
     const user = await this.findByIdentifier(dto.identifier);
@@ -182,8 +365,19 @@ export class AuthService {
   }
 
   async sendOtp(dto: SendOtpDto) {
+    const cleanIdentifier = this.normalizeIdentifier(dto.identifier);
+
+    if (dto.type === OtpType.LOGIN || dto.type === OtpType.FORGOT_PASSWORD) {
+      const user = await this.findByIdentifier(cleanIdentifier);
+      if (!user) {
+        throw new NotFoundException(
+          `No user account found with identifier '${dto.identifier}'. Please register first.`,
+        );
+      }
+    }
+
     const existingOtp = await this.otpRepository.findOne({
-      where: { identifier: dto.identifier, type: dto.type, isUsed: false },
+      where: { identifier: cleanIdentifier, type: dto.type, isUsed: false },
       order: { createdAt: 'DESC' },
     });
 
@@ -209,7 +403,7 @@ export class AuthService {
     );
 
     const otp = this.otpRepository.create({
-      identifier: dto.identifier,
+      identifier: cleanIdentifier,
       codeHash,
       type: dto.type,
       expiresAt,
@@ -218,24 +412,25 @@ export class AuthService {
     await this.otpRepository.save(otp);
 
     console.log(
-      `[OTP GENERATED] Identifier: ${dto.identifier} | Code: ${rawCode} | Type: ${dto.type}`,
+      `[OTP GENERATED] Identifier: ${cleanIdentifier} | Code: ${rawCode} | Type: ${dto.type}`,
     );
 
     return {
-      message: `OTP sent to ${dto.identifier}. Valid for ${this.otpExpirationMinutes} minutes.`,
+      message: `OTP sent to ${cleanIdentifier}. Valid for ${this.otpExpirationMinutes} minutes.`,
       devCode: rawCode,
     };
   }
 
   async loginWithOtp(dto: LoginOtpDto) {
-    const user = await this.findByIdentifier(dto.identifier);
+    const cleanIdentifier = this.normalizeIdentifier(dto.identifier);
+    const user = await this.findByIdentifier(cleanIdentifier);
     if (!user) {
       throw new UnauthorizedException(
-        'User not found with provided identifier.',
+        `User not found with identifier '${dto.identifier}'. Please register first.`,
       );
     }
 
-    await this.verifyOtpCode(dto.identifier, dto.code, OtpType.LOGIN);
+    await this.verifyOtpCode(cleanIdentifier, dto.code, OtpType.LOGIN);
 
     user.failedLoginAttempts = 0;
     user.lockoutUntil = null;
@@ -257,20 +452,35 @@ export class AuthService {
   }
 
   async forgotPassword(identifier: string) {
-    const user = await this.findByIdentifier(identifier);
+    const cleanIdentifier = this.normalizeIdentifier(identifier);
+    const user = await this.findByIdentifier(cleanIdentifier);
+
     if (!user) {
-      return { message: 'If account exists, an OTP has been sent.' };
+      // Constant-time response to prevent account enumeration via timing side-channel
+      await bcrypt.hash('dummy-constant-time-work', 10);
+      return { message: 'If an account exists, an OTP has been sent.' };
     }
-    return this.sendOtp({ identifier, type: OtpType.FORGOT_PASSWORD });
+
+    await this.sendOtp({
+      identifier: cleanIdentifier,
+      type: OtpType.FORGOT_PASSWORD,
+    });
+
+    return { message: 'If an account exists, an OTP has been sent.' };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.findByIdentifier(dto.identifier);
+    const cleanIdentifier = this.normalizeIdentifier(dto.identifier);
+    const user = await this.findByIdentifier(cleanIdentifier);
     if (!user) {
       throw new BadRequestException('User not found.');
     }
 
-    await this.verifyOtpCode(dto.identifier, dto.code, OtpType.FORGOT_PASSWORD);
+    await this.verifyOtpCode(
+      cleanIdentifier,
+      dto.code,
+      OtpType.FORGOT_PASSWORD,
+    );
 
     user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
     user.failedLoginAttempts = 0;
@@ -280,9 +490,14 @@ export class AuthService {
     return { message: 'Password reset successfully. You can now log in.' };
   }
 
-  private async verifyOtpCode(identifier: string, code: string, type: OtpType) {
+  private async verifyOtpCode(
+    identifier: string,
+    code: string,
+    type: OtpType,
+  ) {
+    const cleanIdentifier = this.normalizeIdentifier(identifier);
     const otp = await this.otpRepository.findOne({
-      where: { identifier, type, isUsed: false },
+      where: { identifier: cleanIdentifier, type, isUsed: false },
       order: { createdAt: 'DESC' },
     });
 

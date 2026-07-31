@@ -1,4 +1,4 @@
-import { Entity, Column, DeleteDateColumn, OneToMany } from 'typeorm';
+import { Entity, Column, DeleteDateColumn, OneToMany, Index } from 'typeorm';
 import { BaseEntity } from '@/common/database/base.entity';
 import { AgencyPageSection } from '@/modules/agencies/entities/agency-page-section.entity';
 
@@ -11,6 +11,10 @@ const decimalTransformer = {
 export class Agency extends BaseEntity {
   @Column({ default: 'Caselink' })
   name!: string;
+
+  @Index({ unique: true, where: 'slug IS NOT NULL' })
+  @Column({ name: 'slug', nullable: true, unique: true })
+  slug!: string;
 
   @Column({ name: 'logo_url', nullable: true })
   logoUrl!: string;
