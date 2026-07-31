@@ -2,24 +2,35 @@ import { Entity, Column, DeleteDateColumn, OneToMany } from 'typeorm';
 import { BaseEntity } from '../database/base.entity';
 import { AgencyPageSection } from './agency-page-section.entity';
 
+const decimalTransformer = {
+  to: (value: number | null) => value,
+  from: (value: string | null) => (value ? parseFloat(value) : null),
+};
+
 @Entity('agencies')
 export class Agency extends BaseEntity {
-  @Column()
-  name!: string;
-
+  // Cover and logo URLs
   @Column({ name: 'logo_url', nullable: true })
   logoUrl!: string;
 
   @Column({ name: 'cover_url', nullable: true })
   coverUrl!: string;
 
-  @Column({ type: 'text', nullable: true })
-  description!: string;
+  // Basic information
+  @Column()
+  name!: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'short_description', type: 'text' })
+  shortDescription!: string;
+
+  @Column({ name: 'long_description', type: 'text', nullable: true })
+  longDescription!: string;
+
+  // Contact information
+  @Column()
   phone!: string;
 
-  @Column({ nullable: true })
+  @Column()
   email!: string;
 
   @Column({ nullable: true })
@@ -31,15 +42,36 @@ export class Agency extends BaseEntity {
   @Column({ nullable: true })
   website!: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  // Location information
+  @Column()
+  city!: string;
+
+  @Column({ name: 'office_address', type: 'text' })
+  officeAddress!: string;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 7,
+    nullable: true,
+    transformer: decimalTransformer,
+  })
   latitude!: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 7,
+    nullable: true,
+    transformer: decimalTransformer,
+  })
   longitude!: number;
 
+  // Working hours
   @Column({ name: 'working_hours', type: 'jsonb', nullable: true })
   workingHours!: Record<string, any>;
 
+  // Review settings
   @Column({ name: 'min_review_stars', type: 'int', default: 1 })
   minReviewStars!: number;
 

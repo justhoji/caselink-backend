@@ -18,7 +18,7 @@ import { AgencyPageSection } from './common/entities/agency-page-section.entity'
         port: config.get<number>('DB_PORT'),
         username: config.get<string>('DB_USERNAME'),
         password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_DATABASE'),
+        autoLoadEntities: true,
         entities: [Agency, AgencyPageSection],
         synchronize: config.get<boolean>('DB_SYNCHRONIZE', true),
         logging: config.get<boolean>('DB_LOGGING', false),
