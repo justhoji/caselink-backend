@@ -1,0 +1,10 @@
+export enum PageSectionKey {
+  HERO = 'HERO',
+  PACKAGES = 'PACKAGES',
+  ABOUT_US = 'ABOUT_US',
+  HOTELS = 'HOTELS',
+  REVIEWS = 'REVIEWS',
+  CONTACT = 'CONTACT',
+  WORKING_HOURS = 'WORKING_HOURS',
+  FAQ = 'FAQ',
+}

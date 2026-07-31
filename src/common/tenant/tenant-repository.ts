@@ -7,8 +7,8 @@ import {
   FindOptionsWhere,
 } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
-import { TenantBaseEntity } from '../database/tenant-base.entity';
-import { TenantContextService } from './tenant-context.service';
+import { TenantBaseEntity } from '@/common/database/tenant-base.entity';
+import { TenantContextService } from '@/common/tenant/tenant-context.service';
 
 export class TenantRepository<T extends TenantBaseEntity> {
   constructor(
@@ -69,33 +69,41 @@ export class TenantRepository<T extends TenantBaseEntity> {
     partialEntity: QueryDeepPartialEntity<T>,
   ): Promise<any> {
     const agencyId = this.getAgencyId();
-    const scopedCriteria = typeof criteria === 'object'
-      ? { ...criteria, agencyId }
-      : { id: criteria, agencyId };
+    const scopedCriteria =
+      typeof criteria === 'object'
+        ? { ...criteria, agencyId }
+        : { id: criteria, agencyId };
     return this.repository.update(scopedCriteria as any, partialEntity as any);
   }
 
   async delete(criteria: string | number | FindOptionsWhere<T>): Promise<any> {
     const agencyId = this.getAgencyId();
-    const scopedCriteria = typeof criteria === 'object'
-      ? { ...criteria, agencyId }
-      : { id: criteria, agencyId };
+    const scopedCriteria =
+      typeof criteria === 'object'
+        ? { ...criteria, agencyId }
+        : { id: criteria, agencyId };
     return this.repository.delete(scopedCriteria as any);
   }
 
-  async softDelete(criteria: string | number | FindOptionsWhere<T>): Promise<any> {
+  async softDelete(
+    criteria: string | number | FindOptionsWhere<T>,
+  ): Promise<any> {
     const agencyId = this.getAgencyId();
-    const scopedCriteria = typeof criteria === 'object'
-      ? { ...criteria, agencyId }
-      : { id: criteria, agencyId };
+    const scopedCriteria =
+      typeof criteria === 'object'
+        ? { ...criteria, agencyId }
+        : { id: criteria, agencyId };
     return this.repository.softDelete(scopedCriteria as any);
   }
 
-  async restore(criteria: string | number | FindOptionsWhere<T>): Promise<any> {
+  async restore(
+    criteria: string | number | FindOptionsWhere<T>,
+  ): Promise<any> {
     const agencyId = this.getAgencyId();
-    const scopedCriteria = typeof criteria === 'object'
-      ? { ...criteria, agencyId }
-      : { id: criteria, agencyId };
+    const scopedCriteria =
+      typeof criteria === 'object'
+        ? { ...criteria, agencyId }
+        : { id: criteria, agencyId };
     return this.repository.restore(scopedCriteria as any);
   }
 
@@ -106,4 +114,3 @@ export class TenantRepository<T extends TenantBaseEntity> {
       .andWhere(`${alias}.agency_id = :agencyId`, { agencyId });
   }
 }
-

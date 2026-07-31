@@ -1,0 +1,5 @@
+export enum OtpType {
+  LOGIN = 'LOGIN',
+  FORGOT_PASSWORD = 'FORGOT_PASSWORD',
+  VERIFY_ACCOUNT = 'VERIFY_ACCOUNT',
+}

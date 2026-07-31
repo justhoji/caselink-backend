@@ -1,6 +1,6 @@
 import { Entity, Column, DeleteDateColumn, OneToMany } from 'typeorm';
-import { BaseEntity } from '../database/base.entity';
-import { AgencyPageSection } from './agency-page-section.entity';
+import { BaseEntity } from '@/common/database/base.entity';
+import { AgencyPageSection } from '@/modules/agencies/entities/agency-page-section.entity';
 
 const decimalTransformer = {
   to: (value: number | null) => value,
@@ -9,28 +9,25 @@ const decimalTransformer = {
 
 @Entity('agencies')
 export class Agency extends BaseEntity {
-  // Cover and logo URLs
+  @Column({ default: 'Caselink' })
+  name!: string;
+
   @Column({ name: 'logo_url', nullable: true })
   logoUrl!: string;
 
   @Column({ name: 'cover_url', nullable: true })
   coverUrl!: string;
 
-  // Basic information
-  @Column()
-  name!: string;
-
-  @Column({ name: 'short_description', type: 'text' })
+  @Column({ name: 'short_description', type: 'text', nullable: true })
   shortDescription!: string;
 
   @Column({ name: 'long_description', type: 'text', nullable: true })
   longDescription!: string;
 
-  // Contact information
-  @Column()
+  @Column({ nullable: true })
   phone!: string;
 
-  @Column()
+  @Column({ nullable: true })
   email!: string;
 
   @Column({ nullable: true })
@@ -42,11 +39,10 @@ export class Agency extends BaseEntity {
   @Column({ nullable: true })
   website!: string;
 
-  // Location information
-  @Column()
+  @Column({ nullable: true })
   city!: string;
 
-  @Column({ name: 'office_address', type: 'text' })
+  @Column({ name: 'office_address', type: 'text', nullable: true })
   officeAddress!: string;
 
   @Column({
@@ -67,11 +63,9 @@ export class Agency extends BaseEntity {
   })
   longitude!: number;
 
-  // Working hours
   @Column({ name: 'working_hours', type: 'jsonb', nullable: true })
   workingHours!: Record<string, any>;
 
-  // Review settings
   @Column({ name: 'min_review_stars', type: 'int', default: 1 })
   minReviewStars!: number;
 
