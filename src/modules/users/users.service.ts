@@ -13,7 +13,9 @@ export class UsersService {
   ) {}
 
   /**
-   * Retrieves all staff users belonging to the current authenticated agency
+   * Retrieves all staff users belonging to the current authenticated agency.
+   * TypeORM's soft-delete filter is applied automatically via @DeleteDateColumn,
+   * so users with a non-null deleted_at are always excluded.
    */
   async findAllForCurrentAgency(): Promise<User[]> {
     const agencyId = this.tenantContextService.getRequiredAgencyId();

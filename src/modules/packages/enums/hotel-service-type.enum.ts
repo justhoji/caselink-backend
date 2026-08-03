@@ -1,0 +1,8 @@
+export enum HotelServiceType {
+  TWO_WAY_FLIGHTS = 'TWO_WAY_FLIGHTS',
+  MEAL = 'MEAL',
+  TRANSFER = 'TRANSFER',
+  INSURANCE = 'INSURANCE',
+  EXCURSION = 'EXCURSION',
+  VISA = 'VISA',
+}

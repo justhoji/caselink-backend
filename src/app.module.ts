@@ -2,13 +2,18 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { ScheduleModule } from '@nestjs/schedule';
 import * as Joi from 'joi';
+import { join } from 'path';
 import { TenantContextMiddleware } from '@/common/tenant/tenant-context.middleware';
 import { TenantModule } from '@/common/tenant/tenant.module';
 import { AgenciesModule } from '@/modules/agencies/agencies.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { UsersModule } from '@/modules/users/users.module';
 import { EmailModule } from '@/modules/email/email.module';
+import { MediaModule } from '@/modules/media/media.module';
+import { PackagesModule } from '@/modules/packages/packages.module';
 
 @Module({
   imports: [
@@ -39,7 +44,11 @@ import { EmailModule } from '@/modules/email/email.module';
         SMTP_USER: Joi.string().optional().allow(''),
         SMTP_PASS: Joi.string().optional().allow(''),
         SMTP_SECURE: Joi.boolean().optional().default(false),
-        EMAIL_FROM: Joi.string().optional().default('Caselink <noreply@caselink.uz>'),
+        EMAIL_FROM: Joi.string()
+          .optional()
+          .default('Caselink <noreply@caselink.uz>'),
+        HOST: Joi.string().uri().optional().default('http://localhost:3000'),
+        AUTH_OTP_MAX_ATTEMPTS: Joi.number().default(5),
       }),
     }),
     ThrottlerModule.forRootAsync({
@@ -52,11 +61,18 @@ import { EmailModule } from '@/modules/email/email.module';
         },
       ],
     }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
+    }),
+    ScheduleModule.forRoot(),
     TenantModule,
     EmailModule,
+    MediaModule,
     AgenciesModule,
     AuthModule,
     UsersModule,
+    PackagesModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

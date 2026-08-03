@@ -21,7 +21,10 @@ import { EmailService } from './email.service';
             : undefined,
         },
         defaults: {
-          from: config.get<string>('EMAIL_FROM', 'Caselink <noreply@caselink.uz>'),
+          from: config.get<string>(
+            'EMAIL_FROM',
+            'Caselink <noreply@caselink.uz>',
+          ),
         },
       }),
     }),

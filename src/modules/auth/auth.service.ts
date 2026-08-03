@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { User } from '@/modules/auth/entities/user.entity';
 import { Otp } from '@/modules/auth/entities/otp.entity';
 import { Agency } from '@/modules/agencies/entities/agency.entity';
@@ -63,6 +64,14 @@ export class AuthService {
   }
 
   /**
+   * Maximum number of wrong guesses allowed per OTP before it is invalidated.
+   * Prevents brute-force of the 6-digit code space.
+   */
+  private get otpMaxAttempts(): number {
+    return Number(this.configService.get<number>('AUTH_OTP_MAX_ATTEMPTS', 5));
+  }
+
+  /**
    * Helper to normalize identifier strings (lowercase email, trim whitespace)
    */
   private normalizeIdentifier(identifier: string): string {
@@ -83,17 +92,13 @@ export class AuthService {
   }
 
   /**
-   * Helper to find user by email or phone identifier
+   * Helper to find user by email or phone identifier.
+   * Uses a single normalized value to avoid duplicate OR conditions.
    */
   private async findByIdentifier(identifier: string): Promise<User | null> {
     const clean = this.normalizeIdentifier(identifier);
     return this.userRepository.findOne({
-      where: [
-        { email: clean },
-        { phone: clean },
-        { email: identifier },
-        { phone: identifier },
-      ],
+      where: [{ email: clean }, { phone: clean }],
     });
   }
 
@@ -137,7 +142,8 @@ export class AuthService {
   }
 
   /**
-   * STEP 3: Password setting phase
+   * STEP 3: Password setting phase.
+   * Requires a successfully completed VERIFY_ACCOUNT OTP for the identifier.
    */
   async registerSetPassword(dto: RegisterSetPasswordDto) {
     const cleanIdentifier = this.normalizeIdentifier(dto.identifier);
@@ -151,6 +157,9 @@ export class AuthService {
         'Email or phone number is already registered.',
       );
     }
+
+    // Guard: ensure OTP verification (step 2) was completed before accepting password
+    await this.assertOtpWasVerified(cleanIdentifier, OtpType.VERIFY_ACCOUNT);
 
     return {
       message: 'Password set successfully for onboarding.',
@@ -183,7 +192,8 @@ export class AuthService {
   }
 
   /**
-   * STEP 4 / FINAL: Complete registration with agency name, unique page address & optional password
+   * STEP 4 / FINAL: Complete registration with agency name, unique page address & optional password.
+   * Requires that VERIFY_ACCOUNT OTP was completed for the email/phone.
    */
   async registerComplete(dto: RegisterCompleteDto) {
     const rawIdentifier = dto.email || dto.phone;
@@ -191,14 +201,38 @@ export class AuthService {
       throw new BadRequestException('Either email or phone must be provided.');
     }
 
-    const cleanEmail = dto.email ? this.normalizeIdentifier(dto.email) : undefined;
-    const cleanPhone = dto.phone ? this.normalizeIdentifier(dto.phone) : undefined;
+    const cleanEmail = dto.email
+      ? this.normalizeIdentifier(dto.email)
+      : undefined;
+    const cleanPhone = dto.phone
+      ? this.normalizeIdentifier(dto.phone)
+      : undefined;
     const cleanIdentifier = cleanEmail || cleanPhone || '';
 
     const existingUser = await this.findByIdentifier(cleanIdentifier);
     if (existingUser) {
       throw new ConflictException(
         'Email or phone number is already registered.',
+      );
+    }
+
+    // Guard: ensure OTP verification was completed for either email or phone
+    let isVerified = false;
+    if (cleanPhone) {
+      try {
+        await this.assertOtpWasVerified(cleanPhone, OtpType.VERIFY_ACCOUNT);
+        isVerified = true;
+      } catch {
+        // Phone not verified, fallback to email check below
+      }
+    }
+    if (!isVerified && cleanEmail) {
+      await this.assertOtpWasVerified(cleanEmail, OtpType.VERIFY_ACCOUNT);
+      isVerified = true;
+    }
+    if (!isVerified) {
+      throw new BadRequestException(
+        'Contact verification is required. Please complete OTP verification first.',
       );
     }
 
@@ -277,13 +311,15 @@ export class AuthService {
   }
 
   /**
-   * Backwards compatible registerOwner wrapper calling registerComplete
+   * Backwards compatible registerOwner wrapper calling registerComplete.
+   * Uses a UUID-based slug suffix to avoid collisions.
    */
   async registerOwner(dto: RegisterOwnerDto) {
-    const agencyName = (dto as any).agencyName || 'Caselink';
-    const defaultSlug =
-      agencyName.toLowerCase().replace(/[^a-z0-9]/g, '') +
-      Math.floor(1000 + Math.random() * 9000);
+    const dtoWithAgency = dto as unknown as { agencyName?: string };
+    const agencyName = dtoWithAgency.agencyName ?? 'Caselink';
+    const cleanName = agencyName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // Use a UUID fragment for uniqueness — avoids the 4-digit collision risk
+    const defaultSlug = `${cleanName}-${randomUUID().substring(0, 8)}`;
 
     return this.registerComplete({
       email: dto.email,
@@ -415,11 +451,7 @@ export class AuthService {
 
     // If identifier is an email address, dispatch OTP email
     if (cleanIdentifier.includes('@')) {
-      await this.emailService.sendOtpEmail(
-        cleanIdentifier,
-        rawCode,
-        dto.type,
-      );
+      await this.emailService.sendOtpEmail(cleanIdentifier, rawCode, dto.type);
     }
 
     return {
@@ -496,11 +528,11 @@ export class AuthService {
     return { message: 'Password reset successfully. You can now log in.' };
   }
 
-  private async verifyOtpCode(
-    identifier: string,
-    code: string,
-    type: OtpType,
-  ) {
+  /**
+   * Verifies an OTP code. Tracks failed attempts and invalidates the OTP
+   * after AUTH_OTP_MAX_ATTEMPTS wrong guesses to prevent brute-force attacks.
+   */
+  private async verifyOtpCode(identifier: string, code: string, type: OtpType) {
     const cleanIdentifier = this.normalizeIdentifier(identifier);
     const otp = await this.otpRepository.findOne({
       where: { identifier: cleanIdentifier, type, isUsed: false },
@@ -517,13 +549,59 @@ export class AuthService {
       );
     }
 
+    // Brute-force guard: invalidate OTP after too many wrong attempts
+    if (otp.failedAttempts >= this.otpMaxAttempts) {
+      otp.isUsed = true; // treat as consumed so it cannot be guessed further
+      await this.otpRepository.save(otp);
+      throw new HttpException(
+        'Too many incorrect attempts. This OTP has been invalidated. Please request a new one.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     const isValid = await bcrypt.compare(code, otp.codeHash);
     if (!isValid) {
-      throw new BadRequestException('Invalid OTP code.');
+      otp.failedAttempts += 1;
+      await this.otpRepository.save(otp);
+
+      const attemptsLeft = Math.max(
+        0,
+        this.otpMaxAttempts - otp.failedAttempts,
+      );
+      throw new BadRequestException(
+        `Invalid OTP code. ${attemptsLeft} attempt(s) remaining.`,
+      );
     }
 
     otp.isUsed = true;
     await this.otpRepository.save(otp);
+  }
+
+  /**
+   * Asserts that a VERIFY_ACCOUNT OTP was successfully completed (isUsed = true)
+   * for the given identifier. Used as a gate in steps 3 and 4 of registration.
+   */
+  private async assertOtpWasVerified(
+    identifier: string,
+    type: OtpType,
+  ): Promise<void> {
+    // Check if a verified OTP exists for this identifier within the last 60 minutes.
+    // Native SQL comparison (updated_at >= NOW() - INTERVAL '60 minutes') eliminates
+    // any Node.js <-> PostgreSQL driver timezone parsing offset discrepancies.
+    const verifiedOtp = await this.otpRepository
+      .createQueryBuilder('otp')
+      .where('otp.identifier = :identifier', { identifier })
+      .andWhere('otp.type = :type', { type })
+      .andWhere('otp.is_used = true')
+      .andWhere("otp.updated_at >= NOW() - INTERVAL '60 minutes'")
+      .orderBy('otp.updated_at', 'DESC')
+      .getOne();
+
+    if (!verifiedOtp) {
+      throw new BadRequestException(
+        'Your verification session has expired or contact verification was not found. Please verify your OTP again.',
+      );
+    }
   }
 
   async refreshTokens(dto: RefreshTokenDto) {

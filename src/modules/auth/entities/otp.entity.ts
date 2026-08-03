@@ -17,12 +17,19 @@ export class Otp extends BaseEntity {
   })
   type!: OtpType;
 
-  @Column({ name: 'expires_at', type: 'timestamp' })
+  @Column({ name: 'expires_at', type: 'timestamptz', nullable: true })
   expiresAt!: Date;
 
-  @Column({ name: 'resend_available_at', type: 'timestamp' })
+  @Column({ name: 'resend_available_at', type: 'timestamptz', nullable: true })
   resendAvailableAt!: Date;
 
   @Column({ name: 'is_used', default: false })
   isUsed!: boolean;
+
+  /**
+   * Tracks the number of failed verification attempts for this OTP.
+   * Used to enforce brute-force lockout (see AUTH_OTP_MAX_ATTEMPTS env).
+   */
+  @Column({ name: 'failed_attempts', type: 'int', default: 0 })
+  failedAttempts!: number;
 }

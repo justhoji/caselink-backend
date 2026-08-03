@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { OtpType } from '@/modules/auth/enums/otp-type.enum';
@@ -6,6 +10,8 @@ import { getOtpEmailTemplate } from './templates/otp.template';
 
 @Injectable()
 export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
+
   constructor(
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
@@ -64,8 +70,14 @@ export class EmailService {
         html: htmlContent,
       });
       return true;
-    } catch {
-      return false;
+    } catch (err: unknown) {
+      this.logger.error(
+        `Failed to send OTP email to ${toEmail} (type: ${type})`,
+        err instanceof Error ? err.stack : err,
+      );
+      throw new InternalServerErrorException(
+        'Failed to send verification email. Please try again later.',
+      );
     }
   }
 }

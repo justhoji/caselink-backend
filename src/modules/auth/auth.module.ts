@@ -7,7 +7,6 @@ import { User } from '@/modules/auth/entities/user.entity';
 import { Otp } from '@/modules/auth/entities/otp.entity';
 import { RefreshToken } from '@/modules/auth/entities/refresh-token.entity';
 import { Agency } from '@/modules/agencies/entities/agency.entity';
-import { AgencyPageSection } from '@/modules/agencies/entities/agency-page-section.entity';
 import { AuthService } from '@/modules/auth/auth.service';
 import { AuthController } from '@/modules/auth/auth.controller';
 import { JwtStrategy } from '@/modules/auth/strategies/jwt.strategy';
@@ -16,13 +15,7 @@ import { EmailModule } from '@/modules/email/email.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      User,
-      Otp,
-      RefreshToken,
-      Agency,
-      AgencyPageSection,
-    ]),
+    TypeOrmModule.forFeature([User, Otp, RefreshToken, Agency]),
     PassportModule,
     EmailModule,
     JwtModule.registerAsync({

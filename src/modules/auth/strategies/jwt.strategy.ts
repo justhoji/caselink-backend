@@ -16,11 +16,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt-staff') {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_STAFF_SECRET', 'super-secret-staff-key'),
+      secretOrKey: configService.get<string>(
+        'JWT_STAFF_SECRET',
+        'super-secret-staff-key',
+      ),
     });
   }
 
-  async validate(payload: JwtPayload) {
+  validate(payload: JwtPayload) {
     if (!payload || payload.domain !== 'staff') {
       throw new UnauthorizedException('Invalid token domain');
     }

@@ -1,3 +1,5 @@
+process.env.TZ = 'UTC';
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -5,6 +7,19 @@ import { AppModule } from '@/app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // CORS — configure allowed origins via ALLOWED_ORIGINS env var
+  // (comma-separated, e.g. "http://localhost:5173,https://app.caselink.uz")
+  const rawOrigins = process.env.ALLOWED_ORIGINS ?? '';
+  const allowedOrigins = rawOrigins
+    ? rawOrigins.split(',').map((o) => o.trim())
+    : true; // 'true' allows all origins (development fallback)
+  app.enableCors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-agency-id'],
+    credentials: true,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -26,5 +41,6 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
-
+bootstrap().catch((err: unknown) => {
+  console.error('Failed to start NestJS server:', err);
+});

@@ -5,6 +5,8 @@ import {
   SelectQueryBuilder,
   DeepPartial,
   FindOptionsWhere,
+  UpdateResult,
+  DeleteResult,
 } from 'typeorm';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { TenantBaseEntity } from '@/common/database/tenant-base.entity';
@@ -18,6 +20,16 @@ export class TenantRepository<T extends TenantBaseEntity> {
 
   private getAgencyId(): string {
     return this.tenantContextService.getRequiredAgencyId();
+  }
+
+  private scopeWhere(
+    where?: FindOptionsWhere<T> | FindOptionsWhere<T>[],
+  ): FindOptionsWhere<T> | FindOptionsWhere<T>[] {
+    const agencyId = this.getAgencyId();
+    if (Array.isArray(where)) {
+      return where.map((w) => ({ ...w, agencyId }));
+    }
+    return { ...where, agencyId } as FindOptionsWhere<T>;
   }
 
   create(entityLike?: DeepPartial<T>): T {
@@ -35,76 +47,73 @@ export class TenantRepository<T extends TenantBaseEntity> {
   }
 
   find(options: FindManyOptions<T> = {}): Promise<T[]> {
-    const agencyId = this.getAgencyId();
-    options.where = { ...options.where, agencyId } as any;
+    options.where = this.scopeWhere(options.where);
     return this.repository.find(options);
   }
 
   findOne(options: FindOneOptions<T>): Promise<T | null> {
-    const agencyId = this.getAgencyId();
-    options.where = { ...options.where, agencyId } as any;
+    options.where = this.scopeWhere(options.where);
     return this.repository.findOne(options);
   }
 
   findAndCount(options: FindManyOptions<T> = {}): Promise<[T[], number]> {
-    const agencyId = this.getAgencyId();
-    options.where = { ...options.where, agencyId } as any;
+    options.where = this.scopeWhere(options.where);
     return this.repository.findAndCount(options);
   }
 
   count(options: FindManyOptions<T> = {}): Promise<number> {
-    const agencyId = this.getAgencyId();
-    options.where = { ...options.where, agencyId } as any;
+    options.where = this.scopeWhere(options.where);
     return this.repository.count(options);
   }
 
   exists(options: FindManyOptions<T> = {}): Promise<boolean> {
-    const agencyId = this.getAgencyId();
-    options.where = { ...options.where, agencyId } as any;
+    options.where = this.scopeWhere(options.where);
     return this.repository.exists(options);
   }
 
   async update(
     criteria: string | number | FindOptionsWhere<T>,
     partialEntity: QueryDeepPartialEntity<T>,
-  ): Promise<any> {
+  ): Promise<UpdateResult> {
     const agencyId = this.getAgencyId();
-    const scopedCriteria =
+    const scopedCriteria: FindOptionsWhere<T> =
       typeof criteria === 'object'
         ? { ...criteria, agencyId }
-        : { id: criteria, agencyId };
-    return this.repository.update(scopedCriteria as any, partialEntity as any);
+        : ({ id: criteria, agencyId } as unknown as FindOptionsWhere<T>);
+    return this.repository.update(scopedCriteria, partialEntity);
   }
 
-  async delete(criteria: string | number | FindOptionsWhere<T>): Promise<any> {
+  async delete(
+    criteria: string | number | FindOptionsWhere<T>,
+  ): Promise<DeleteResult> {
     const agencyId = this.getAgencyId();
-    const scopedCriteria =
+    const scopedCriteria: FindOptionsWhere<T> =
       typeof criteria === 'object'
         ? { ...criteria, agencyId }
-        : { id: criteria, agencyId };
-    return this.repository.delete(scopedCriteria as any);
+        : ({ id: criteria, agencyId } as unknown as FindOptionsWhere<T>);
+    return this.repository.delete(scopedCriteria);
   }
 
   async softDelete(
     criteria: string | number | FindOptionsWhere<T>,
-  ): Promise<any> {
+  ): Promise<UpdateResult> {
     const agencyId = this.getAgencyId();
-    const scopedCriteria =
+    const scopedCriteria: FindOptionsWhere<T> =
       typeof criteria === 'object'
         ? { ...criteria, agencyId }
-        : { id: criteria, agencyId };
-    return this.repository.softDelete(scopedCriteria as any);
+        : ({ id: criteria, agencyId } as unknown as FindOptionsWhere<T>);
+    return this.repository.softDelete(scopedCriteria);
   }
 
   async restore(
     criteria: string | number | FindOptionsWhere<T>,
-  ): Promise<any> {
+  ): Promise<UpdateResult> {
     const agencyId = this.getAgencyId();
-    const scopedCriteria =
+    const scopedCriteria: FindOptionsWhere<T> =
       typeof criteria === 'object'
         ? { ...criteria, agencyId }
-        : { id: criteria, agencyId };
-    return this.repository.restore(scopedCriteria as any);
+        : ({ id: criteria, agencyId } as unknown as FindOptionsWhere<T>);
+    return this.repository.restore(scopedCriteria);
   }
 
   createQueryBuilder(alias: string): SelectQueryBuilder<T> {

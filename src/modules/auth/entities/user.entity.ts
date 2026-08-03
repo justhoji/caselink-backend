@@ -1,4 +1,11 @@
-import { Entity, Column, DeleteDateColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  DeleteDateColumn,
+  Index,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { BaseEntity } from '@/common/database/base.entity';
 import { StaffRole } from '@/modules/auth/enums/staff-role.enum';
 import { Agency } from '@/modules/agencies/entities/agency.entity';

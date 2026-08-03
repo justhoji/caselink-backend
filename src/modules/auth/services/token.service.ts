@@ -1,10 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, EntityManager } from 'typeorm';
+import { Repository, EntityManager, LessThan } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { User } from '@/modules/auth/entities/user.entity';
 import { RefreshToken } from '@/modules/auth/entities/refresh-token.entity';
 
@@ -25,6 +26,8 @@ export interface JwtStaffPayload {
 
 @Injectable()
 export class TokenService {
+  private readonly logger = new Logger(TokenService.name);
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -80,14 +83,14 @@ export class TokenService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.jwtStaffSecret,
-      expiresIn: this.accessExpiration as any,
+      expiresIn: this.accessExpirationSeconds,
     });
 
     const refreshToken = this.jwtService.sign(
       { ...payload, jti: refreshId, familyId },
       {
         secret: this.jwtStaffSecret,
-        expiresIn: this.refreshExpiration as any,
+        expiresIn: `${this.refreshExpirationDays}d`,
       },
     );
 
@@ -166,5 +169,20 @@ export class TokenService {
    */
   async revokeUserTokens(userId: string): Promise<void> {
     await this.refreshTokenRepository.update({ userId }, { isRevoked: true });
+  }
+
+  /**
+   * Nightly cleanup: deletes refresh tokens that are both expired AND revoked
+   * to prevent unbounded table growth.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async cleanupExpiredTokens(): Promise<void> {
+    const result = await this.refreshTokenRepository.delete({
+      expiresAt: LessThan(new Date()),
+      isRevoked: true,
+    });
+    this.logger.log(
+      `Refresh-token cleanup: removed ${result.affected ?? 0} expired/revoked token(s).`,
+    );
   }
 }
