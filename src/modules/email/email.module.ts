@@ -10,9 +10,9 @@ import { EmailService } from './email.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         transport: {
-          host: config.get<string>('SMTP_HOST', 'localhost'),
-          port: config.get<number>('SMTP_PORT', 1025),
-          secure: config.get<boolean>('SMTP_SECURE', false),
+          host: config.get<string>('SMTP_HOST', 'smtp.gmail.com'),
+          port: config.get<number>('SMTP_PORT', 465),
+          secure: config.get<boolean>('SMTP_SECURE', true),
           auth: config.get<string>('SMTP_USER')
             ? {
                 user: config.get<string>('SMTP_USER'),

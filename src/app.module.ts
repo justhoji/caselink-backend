@@ -39,11 +39,11 @@ import { PackagesModule } from '@/modules/packages/packages.module';
         OTP_EXPIRATION_MINUTES: Joi.number().default(5),
         THROTTLE_TTL: Joi.number().default(60000),
         THROTTLE_LIMIT: Joi.number().default(100),
-        SMTP_HOST: Joi.string().optional().default('localhost'),
-        SMTP_PORT: Joi.number().optional().default(1025),
+        SMTP_HOST: Joi.string().optional().default('smtp.gmail.com'),
+        SMTP_PORT: Joi.number().optional().default(465),
         SMTP_USER: Joi.string().optional().allow(''),
         SMTP_PASS: Joi.string().optional().allow(''),
-        SMTP_SECURE: Joi.boolean().optional().default(false),
+        SMTP_SECURE: Joi.boolean().optional().default(true),
         EMAIL_FROM: Joi.string()
           .optional()
           .default('Caselink <noreply@caselink.uz>'),
