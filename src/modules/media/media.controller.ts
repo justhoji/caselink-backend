@@ -12,6 +12,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
@@ -27,7 +28,7 @@ const ALLOWED_MIME_TYPES = [
   'image/svg+xml',
 ];
 
-@ApiTags('Media')
+@ApiTags('Admin Panel — Media Storage')
 @ApiBearerAuth()
 @Controller('admin/media')
 @UseGuards(JwtAuthGuard)
@@ -36,7 +37,11 @@ export class MediaController {
   constructor(private readonly storageService: StorageService) {}
 
   @Post('upload')
-  @ApiOperation({ summary: 'Upload an agency image file (max 10 MB)' })
+  @ApiOperation({
+    summary: 'Upload an agency image file (max 10 MB)',
+    description:
+      'Uploads an image file to agency-isolated local disk storage and returns a public URL.',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -45,6 +50,18 @@ export class MediaController {
         file: { type: 'string', format: 'binary' },
       },
     },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'File uploaded successfully. Returns public URL and metadata.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request — Missing file or invalid MIME type.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized — Missing or invalid bearer token.',
   })
   @UseInterceptors(
     FileInterceptor('file', {
