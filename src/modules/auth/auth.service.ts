@@ -27,6 +27,7 @@ import { RefreshTokenDto } from '@/modules/auth/dto/refresh-token.dto';
 import { StaffRole } from '@/modules/auth/enums/staff-role.enum';
 import { OtpType } from '@/modules/auth/enums/otp-type.enum';
 import { TokenService } from '@/modules/auth/services/token.service';
+import { EmailService } from '@/modules/email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -38,6 +39,7 @@ export class AuthService {
     @InjectRepository(Agency)
     private readonly agencyRepository: Repository<Agency>,
     private readonly tokenService: TokenService,
+    private readonly emailService: EmailService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
   ) {}
@@ -411,13 +413,17 @@ export class AuthService {
     });
     await this.otpRepository.save(otp);
 
-    console.log(
-      `[OTP GENERATED] Identifier: ${cleanIdentifier} | Code: ${rawCode} | Type: ${dto.type}`,
-    );
+    // If identifier is an email address, dispatch OTP email
+    if (cleanIdentifier.includes('@')) {
+      await this.emailService.sendOtpEmail(
+        cleanIdentifier,
+        rawCode,
+        dto.type,
+      );
+    }
 
     return {
       message: `OTP sent to ${cleanIdentifier}. Valid for ${this.otpExpirationMinutes} minutes.`,
-      devCode: rawCode,
     };
   }
 

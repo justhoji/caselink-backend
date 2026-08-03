@@ -12,16 +12,27 @@ import { AuthService } from '@/modules/auth/auth.service';
 import { AuthController } from '@/modules/auth/auth.controller';
 import { JwtStrategy } from '@/modules/auth/strategies/jwt.strategy';
 import { TokenService } from '@/modules/auth/services/token.service';
+import { EmailModule } from '@/modules/email/email.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Otp, RefreshToken, Agency, AgencyPageSection]),
+    TypeOrmModule.forFeature([
+      User,
+      Otp,
+      RefreshToken,
+      Agency,
+      AgencyPageSection,
+    ]),
     PassportModule,
+    EmailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_STAFF_SECRET', 'super-secret-staff-key'),
+        secret: config.get<string>(
+          'JWT_STAFF_SECRET',
+          'super-secret-staff-key',
+        ),
         signOptions: { expiresIn: '15m' },
       }),
     }),

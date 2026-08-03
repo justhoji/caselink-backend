@@ -8,6 +8,7 @@ import { TenantModule } from '@/common/tenant/tenant.module';
 import { AgenciesModule } from '@/modules/agencies/agencies.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { UsersModule } from '@/modules/users/users.module';
+import { EmailModule } from '@/modules/email/email.module';
 
 @Module({
   imports: [
@@ -33,6 +34,12 @@ import { UsersModule } from '@/modules/users/users.module';
         OTP_EXPIRATION_MINUTES: Joi.number().default(5),
         THROTTLE_TTL: Joi.number().default(60000),
         THROTTLE_LIMIT: Joi.number().default(100),
+        SMTP_HOST: Joi.string().optional().default('localhost'),
+        SMTP_PORT: Joi.number().optional().default(1025),
+        SMTP_USER: Joi.string().optional().allow(''),
+        SMTP_PASS: Joi.string().optional().allow(''),
+        SMTP_SECURE: Joi.boolean().optional().default(false),
+        EMAIL_FROM: Joi.string().optional().default('Caselink <noreply@caselink.uz>'),
       }),
     }),
     ThrottlerModule.forRootAsync({
@@ -46,6 +53,7 @@ import { UsersModule } from '@/modules/users/users.module';
       ],
     }),
     TenantModule,
+    EmailModule,
     AgenciesModule,
     AuthModule,
     UsersModule,
