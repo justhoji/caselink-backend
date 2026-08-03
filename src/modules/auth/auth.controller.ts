@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from '@/modules/auth/auth.service';
-import { RegisterOwnerDto } from '@/modules/auth/dto/register-owner.dto';
 import { RegisterSendOtpDto } from '@/modules/auth/dto/register-send-otp.dto';
 import { RegisterVerifyOtpDto } from '@/modules/auth/dto/register-verify-otp.dto';
 import { RegisterSetPasswordDto } from '@/modules/auth/dto/register-set-password.dto';
@@ -88,19 +87,12 @@ export class AuthController {
   @ApiOperation({
     summary: 'Step 4 — Complete registration: create agency + owner user',
   })
+  @Post('register/complete')
+  @ApiOperation({
+    summary: 'Step 4: Set agency name, unique page address & complete setup',
+  })
   registerComplete(@Body() dto: RegisterCompleteDto) {
     return this.authService.registerComplete(dto);
-  }
-
-  /**
-   * Single-step Registration Wrapper
-   */
-  @Post('register')
-  @ApiOperation({
-    summary: 'Single-step registration (legacy / simplified flow)',
-  })
-  registerOwner(@Body() dto: RegisterOwnerDto) {
-    return this.authService.registerOwner(dto);
   }
 
   // ==========================================

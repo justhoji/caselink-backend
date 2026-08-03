@@ -11,11 +11,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'crypto';
 import { User } from '@/modules/auth/entities/user.entity';
 import { Otp } from '@/modules/auth/entities/otp.entity';
 import { Agency } from '@/modules/agencies/entities/agency.entity';
-import { RegisterOwnerDto } from '@/modules/auth/dto/register-owner.dto';
 import { RegisterSendOtpDto } from '@/modules/auth/dto/register-send-otp.dto';
 import { RegisterVerifyOtpDto } from '@/modules/auth/dto/register-verify-otp.dto';
 import { RegisterSetPasswordDto } from '@/modules/auth/dto/register-set-password.dto';
@@ -101,10 +99,6 @@ export class AuthService {
       where: [{ email: clean }, { phone: clean }],
     });
   }
-
-  // ==========================================
-  // ONBOARDING & REGISTRATION FLOW (4 STEPS)
-  // ==========================================
 
   /**
    * STEP 1: Send registration verification code to email/phone
@@ -263,7 +257,7 @@ export class AuthService {
         slug: cleanSlug,
         email: cleanEmail,
         phone: cleanPhone,
-        website: `https://${cleanSlug}.caselink.uz`,
+        website: `https://caselink.uz/${cleanSlug}.`,
       });
       const savedAgency = await manager.save(agency);
 
@@ -307,26 +301,6 @@ export class AuthService {
         },
         ...tokens,
       };
-    });
-  }
-
-  /**
-   * Backwards compatible registerOwner wrapper calling registerComplete.
-   * Uses a UUID-based slug suffix to avoid collisions.
-   */
-  async registerOwner(dto: RegisterOwnerDto) {
-    const dtoWithAgency = dto as unknown as { agencyName?: string };
-    const agencyName = dtoWithAgency.agencyName ?? 'Caselink';
-    const cleanName = agencyName.toLowerCase().replace(/[^a-z0-9]/g, '');
-    // Use a UUID fragment for uniqueness — avoids the 4-digit collision risk
-    const defaultSlug = `${cleanName}-${randomUUID().substring(0, 8)}`;
-
-    return this.registerComplete({
-      email: dto.email,
-      phone: dto.phone,
-      password: dto.password,
-      agencyName,
-      slug: defaultSlug,
     });
   }
 
