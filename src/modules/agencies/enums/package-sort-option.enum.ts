@@ -1,0 +1,7 @@
+export enum PackageSortOption {
+  POPULARITY = 'POPULARITY',
+  PRICE_ASC = 'PRICE_ASC',
+  PRICE_DESC = 'PRICE_DESC',
+  NEWEST = 'NEWEST',
+  DISCOUNT = 'DISCOUNT',
+}

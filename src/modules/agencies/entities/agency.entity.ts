@@ -1,6 +1,7 @@
 import { Entity, Column, DeleteDateColumn, OneToMany, Index } from 'typeorm';
 import { BaseEntity } from '@/common/database/base.entity';
 import { AgencyPageSection } from '@/modules/agencies/entities/agency-page-section.entity';
+import { PackageSortOption } from '@/modules/agencies/enums/package-sort-option.enum';
 
 const decimalTransformer = {
   to: (value: number | null) => value,
@@ -41,6 +42,15 @@ export class Agency extends BaseEntity {
   whatsapp!: string;
 
   @Column({ nullable: true })
+  facebook!: string;
+
+  @Column({ nullable: true })
+  instagram!: string;
+
+  @Column({ nullable: true })
+  youtube!: string;
+
+  @Column({ nullable: true })
   website!: string;
 
   @Column({ nullable: true })
@@ -68,7 +78,10 @@ export class Agency extends BaseEntity {
   longitude!: number;
 
   @Column({ name: 'working_hours', type: 'jsonb', nullable: true })
-  workingHours!: Record<string, any>;
+  workingHours!: any;
+
+  @Column({ name: 'is_reviews_enabled', default: true })
+  isReviewsEnabled!: boolean;
 
   @Column({ name: 'min_review_stars', type: 'int', default: 1 })
   minReviewStars!: number;
@@ -78,6 +91,14 @@ export class Agency extends BaseEntity {
 
   @Column({ name: 'max_packages_shown', type: 'int', default: 20 })
   maxPackagesShown!: number;
+
+  @Column({
+    name: 'packages_sort_by',
+    type: 'enum',
+    enum: PackageSortOption,
+    default: PackageSortOption.POPULARITY,
+  })
+  packagesSortBy!: PackageSortOption;
 
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt!: Date;
