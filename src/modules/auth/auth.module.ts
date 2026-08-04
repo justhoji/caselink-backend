@@ -12,12 +12,14 @@ import { AuthController } from '@/modules/auth/auth.controller';
 import { JwtStrategy } from '@/modules/auth/strategies/jwt.strategy';
 import { TokenService } from '@/modules/auth/services/token.service';
 import { EmailModule } from '@/modules/email/email.module';
+import { SmsModule } from '@/modules/sms/sms.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Otp, RefreshToken, Agency]),
     PassportModule,
     EmailModule,
+    SmsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

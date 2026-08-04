@@ -12,6 +12,7 @@ import { AgenciesModule } from '@/modules/agencies/agencies.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { UsersModule } from '@/modules/users/users.module';
 import { EmailModule } from '@/modules/email/email.module';
+import { SmsModule } from '@/modules/sms/sms.module';
 import { MediaModule } from '@/modules/media/media.module';
 import { PackagesModule } from '@/modules/packages/packages.module';
 
@@ -47,6 +48,12 @@ import { PackagesModule } from '@/modules/packages/packages.module';
         EMAIL_FROM: Joi.string()
           .optional()
           .default('Caselink <noreply@caselink.uz>'),
+        SMS_GATEWAY_URL: Joi.string()
+          .optional()
+          .default('http://10.1.1.97:3000/api/v2'),
+        SMS_API_KEY: Joi.string().optional().allow(''),
+        SMS_API_SECRET: Joi.string().optional().allow(''),
+        SMS_TEMPLATE_ID: Joi.number().optional().default(10),
         HOST: Joi.string().uri().optional().default('http://localhost:3000'),
         AUTH_OTP_MAX_ATTEMPTS: Joi.number().default(5),
       }),
@@ -68,6 +75,7 @@ import { PackagesModule } from '@/modules/packages/packages.module';
     ScheduleModule.forRoot(),
     TenantModule,
     EmailModule,
+    SmsModule,
     MediaModule,
     AgenciesModule,
     AuthModule,

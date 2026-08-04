@@ -27,6 +27,7 @@ import { StaffRole } from '@/modules/auth/enums/staff-role.enum';
 import { OtpType } from '@/modules/auth/enums/otp-type.enum';
 import { TokenService } from '@/modules/auth/services/token.service';
 import { EmailService } from '@/modules/email/email.service';
+import { SmsService } from '@/modules/sms/sms.service';
 
 @Injectable()
 export class AuthService {
@@ -39,6 +40,7 @@ export class AuthService {
     private readonly agencyRepository: Repository<Agency>,
     private readonly tokenService: TokenService,
     private readonly emailService: EmailService,
+    private readonly smsService: SmsService,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
   ) {}
@@ -423,9 +425,11 @@ export class AuthService {
     });
     await this.otpRepository.save(otp);
 
-    // If identifier is an email address, dispatch OTP email
+    // Dispatch OTP via Email or SMS depending on identifier type
     if (cleanIdentifier.includes('@')) {
       await this.emailService.sendOtpEmail(cleanIdentifier, rawCode, dto.type);
+    } else {
+      await this.smsService.sendOtpSms(cleanIdentifier, rawCode, dto.type);
     }
 
     return {
