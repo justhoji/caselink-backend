@@ -1,12 +1,16 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import type { LoggerService } from '@nestjs/common';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { ConfigService } from '@nestjs/config';
 import { OtpType } from '@/modules/auth/enums/otp-type.enum';
 
 @Injectable()
 export class SmsService {
-  private readonly logger = new Logger(SmsService.name);
-
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
+    private readonly configService: ConfigService,
+  ) {}
 
   private get gatewayUrl(): string {
     return this.configService.get<string>(
@@ -83,6 +87,7 @@ export class SmsService {
       this.logger.warn(
         `[MOCK SMS SENDER] SMS_API_KEY / SMS_API_SECRET not set in .env. ` +
           `Dispatched [${type}] OTP code '${code}' to phone '${formattedPhone}' (templateId=${resolvedTemplateId}).`,
+        SmsService.name,
       );
       return;
     }
@@ -115,6 +120,8 @@ export class SmsService {
         const errorText = await response.text();
         this.logger.error(
           `Company SMS Gateway error (${response.status}): ${errorText}`,
+          undefined,
+          SmsService.name,
         );
         throw new Error(`SMS gateway responded with HTTP ${response.status}`);
       }
@@ -127,17 +134,22 @@ export class SmsService {
       if (data.success === false) {
         this.logger.error(
           `Company SMS Gateway payload error: ${data.error || 'Unknown error'}`,
+          undefined,
+          SmsService.name,
         );
         throw new Error(data.error || 'Failed to dispatch SMS via gateway.');
       }
 
       this.logger.log(
         `Successfully dispatched [${type}] OTP SMS code to phone '${formattedPhone}' via Company SMS Gateway (Template ${resolvedTemplateId}).`,
+        SmsService.name,
       );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.error(
         `Failed to send [${type}] SMS to phone '${formattedPhone}': ${message}`,
+        undefined,
+        SmsService.name,
       );
       throw new BadRequestException(
         'Failed to dispatch SMS verification code. Please check your phone number or try again later.',

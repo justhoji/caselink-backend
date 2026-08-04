@@ -8,6 +8,7 @@ import * as Joi from 'joi';
 import { join } from 'path';
 import { TenantContextMiddleware } from '@/common/tenant/tenant-context.middleware';
 import { TenantModule } from '@/common/tenant/tenant.module';
+import { LoggerModule } from '@/common/logger';
 import { AgenciesModule } from '@/modules/agencies/agencies.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { UsersModule } from '@/modules/users/users.module';
@@ -18,6 +19,9 @@ import { PackagesModule } from '@/modules/packages/packages.module';
 
 @Module({
   imports: [
+    // LoggerModule must come first so the global Winston logger
+    // is available to all modules that follow.
+    LoggerModule,
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: Joi.object({
@@ -94,6 +98,25 @@ import { PackagesModule } from '@/modules/packages/packages.module';
         autoLoadEntities: true,
         synchronize: config.get<boolean>('DB_SYNCHRONIZE', false),
         logging: config.get<boolean>('DB_LOGGING', false),
+        /**
+         * Explicit pg connection-pool settings.
+         *
+         * Without these, TypeORM lets pg use its own defaults and during the
+         * synchronize/schema-introspection phase it can fire several queries on
+         * the same client before the previous one resolves — triggering the
+         * pg@8 "client already executing a query" DeprecationWarning.
+         *
+         * Setting a proper pool size forces each query to acquire its own
+         * dedicated client from the pool, eliminating the race condition.
+         */
+        extra: {
+          // Max number of clients in the pool.
+          max: 10,
+          // Close idle clients after 30 s to avoid holding stale connections.
+          idleTimeoutMillis: 30_000,
+          // Fail fast if a new connection cannot be established within 5 s.
+          connectionTimeoutMillis: 5_000,
+        },
       }),
     }),
   ],

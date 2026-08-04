@@ -1,8 +1,10 @@
 import {
   Injectable,
   InternalServerErrorException,
-  Logger,
+  Inject,
 } from '@nestjs/common';
+import type { LoggerService } from '@nestjs/common';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { OtpType } from '@/modules/auth/enums/otp-type.enum';
@@ -10,9 +12,9 @@ import { getOtpEmailTemplate } from './templates/otp.template';
 
 @Injectable()
 export class EmailService {
-  private readonly logger = new Logger(EmailService.name);
-
   constructor(
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
   ) {}
@@ -73,7 +75,8 @@ export class EmailService {
     } catch (err: unknown) {
       this.logger.error(
         `Failed to send OTP email to ${toEmail} (type: ${type})`,
-        err instanceof Error ? err.stack : err,
+        err instanceof Error ? err.stack : String(err),
+        EmailService.name,
       );
       throw new InternalServerErrorException(
         'Failed to send verification email. Please try again later.',
