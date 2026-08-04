@@ -31,7 +31,6 @@ import { PackagesModule } from '@/modules/packages/packages.module';
         DB_USERNAME: Joi.string().required(),
         DB_PASSWORD: Joi.string().required(),
         DB_DATABASE: Joi.string().required(),
-        DB_SYNCHRONIZE: Joi.boolean().default(false),
         DB_LOGGING: Joi.boolean().default(false),
         JWT_STAFF_SECRET: Joi.string().min(32).required(),
         JWT_ACCESS_EXPIRATION: Joi.string().default('15m'),
@@ -96,7 +95,8 @@ import { PackagesModule } from '@/modules/packages/packages.module';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
-        synchronize: config.get<boolean>('DB_SYNCHRONIZE', false),
+        // Never let TypeORM auto-mutate the schema — use migrations instead.
+        synchronize: false,
         logging: config.get<boolean>('DB_LOGGING', false),
         /**
          * Explicit pg connection-pool settings.
