@@ -31,6 +31,15 @@ export class QueryTourPackagesDto {
   isPublished?: boolean;
 
   @ApiPropertyOptional({
+    example: false,
+    description: 'Filter by archived status (true or false)',
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  isArchived?: boolean;
+
+  @ApiPropertyOptional({
     enum: Currency,
     example: Currency.USD,
     description: 'Filter by hotel pricing currency',

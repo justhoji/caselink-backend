@@ -78,6 +78,7 @@ export class PackagesService {
         description: dto.description,
         isPublished: dto.isPublished ?? false,
         isFeatured: dto.isFeatured ?? false,
+        isArchived: dto.isArchived ?? false,
         startDate,
         endDate,
       });
@@ -168,6 +169,12 @@ export class PackagesService {
     if (query.isPublished !== undefined) {
       qb.andWhere('pkg.is_published = :isPublished', {
         isPublished: query.isPublished,
+      });
+    }
+
+    if (query.isArchived !== undefined) {
+      qb.andWhere('pkg.is_archived = :isArchived', {
+        isArchived: query.isArchived,
       });
     }
 

@@ -30,6 +30,9 @@ export class TourPackage extends TenantBaseEntity {
   @Column({ name: 'is_featured', default: false })
   isFeatured!: boolean;
 
+  @Column({ name: 'is_archived', default: false })
+  isArchived!: boolean;
+
   @Column({ name: 'start_date', type: 'date' })
   startDate!: Date;
 

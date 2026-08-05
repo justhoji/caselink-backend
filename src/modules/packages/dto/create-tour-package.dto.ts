@@ -78,6 +78,14 @@ export class CreateTourPackageDto {
   isFeatured?: boolean;
 
   @ApiPropertyOptional({
+    example: false,
+    description: 'Whether package is archived',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isArchived?: boolean;
+
+  @ApiPropertyOptional({
     type: [PackageHotelDto],
     description: 'Hotel options with individual pricing',
   })
