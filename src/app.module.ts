@@ -16,6 +16,7 @@ import { EmailModule } from '@/modules/email/email.module';
 import { SmsModule } from '@/modules/sms/sms.module';
 import { MediaModule } from '@/modules/media/media.module';
 import { PackagesModule } from '@/modules/packages/packages.module';
+import { AirportsModule } from '@/modules/airports/airports.module';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { PackagesModule } from '@/modules/packages/packages.module';
     AuthModule,
     UsersModule,
     PackagesModule,
+    AirportsModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
