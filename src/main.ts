@@ -5,22 +5,21 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { AppModule } from '@/app.module';
-import { HttpLoggingInterceptor } from '@/common/logger';
+import { HttpLoggingInterceptor, AllExceptionsFilter } from '@/common/logger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
-  // Log every HTTP request/response through Winston.
   app.useGlobalInterceptors(app.get(HttpLoggingInterceptor));
 
-  // CORS — configure allowed origins via ALLOWED_ORIGINS env var
-  // (comma-separated, e.g. "http://localhost:5173,https://app.caselink.uz")
+  app.useGlobalFilters(app.get(AllExceptionsFilter));
+
   const rawOrigins = process.env.ALLOWED_ORIGINS ?? '';
   const allowedOrigins = rawOrigins
     ? rawOrigins.split(',').map((o) => o.trim())
-    : true; // 'true' allows all origins (development fallback)
+    : true;
   app.enableCors({
     origin: allowedOrigins,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],

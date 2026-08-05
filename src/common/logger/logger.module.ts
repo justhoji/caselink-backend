@@ -2,16 +2,12 @@ import { Module, Global } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './winston.config';
 import { HttpLoggingInterceptor } from './http-logging.interceptor';
+import { AllExceptionsFilter } from './all-exceptions.filter';
 
-/**
- * GlobalLoggerModule — registers the Winston-backed NestJS logger globally.
- * Import once in AppModule; every service that injects `Logger` or
- * `WINSTON_MODULE_PROVIDER` will receive the shared Winston instance.
- */
 @Global()
 @Module({
   imports: [WinstonModule.forRoot(winstonConfig)],
-  providers: [HttpLoggingInterceptor],
-  exports: [WinstonModule, HttpLoggingInterceptor],
+  providers: [HttpLoggingInterceptor, AllExceptionsFilter],
+  exports: [WinstonModule, HttpLoggingInterceptor, AllExceptionsFilter],
 })
 export class LoggerModule {}
