@@ -20,7 +20,8 @@ export class PackageFlightDto {
 
   @ApiProperty({
     example: 'TAS (Tashkent)',
-    description: 'Departure airport / city',
+    description:
+      'Departure airport (can differ between outbound & return flights)',
   })
   @IsString()
   @IsNotEmpty()
@@ -28,7 +29,8 @@ export class PackageFlightDto {
 
   @ApiProperty({
     example: 'SSH (Sharm El Sheikh)',
-    description: 'Arrival airport / city',
+    description:
+      'Arrival airport (can differ between outbound & return flights)',
   })
   @IsString()
   @IsNotEmpty()
@@ -52,9 +54,26 @@ export class PackageFlightDto {
 
   @ApiPropertyOptional({
     example: false,
-    description: 'Whether this flight is a return flight',
+    description: 'Whether this flight is a return flight segment',
   })
   @IsOptional()
   @IsBoolean()
   isReturnFlight?: boolean;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Whether luggage allowance is included with this flight',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isLuggageIncluded?: boolean;
+
+  @ApiPropertyOptional({
+    example: '23 kg',
+    description:
+      'Luggage allowance details if enabled (e.g., 23 kg, 20 kg, 2x23 kg)',
+  })
+  @IsOptional()
+  @IsString()
+  luggageAllowance?: string;
 }
