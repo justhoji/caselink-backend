@@ -18,6 +18,12 @@ const DEFAULT_SECTIONS: { sectionKey: PageSectionKey; sortOrder: number }[] = [
   { sectionKey: PageSectionKey.PACKAGES, sortOrder: 8 },
 ];
 
+export interface HydratedPageSection {
+  key: PageSectionKey;
+  sortOrder: number;
+  content: Record<string, unknown>;
+}
+
 @Injectable()
 export class AgenciesService {
   constructor(
@@ -159,5 +165,111 @@ export class AgenciesService {
     await this.sectionRepository.save(updatedEntities);
 
     return this.getSections(agencyId);
+  }
+
+  /**
+   * Public landing page builder: fetches agency by slug and returns an ordered array
+   * of hydrated sections containing ONLY visible section content for public rendering.
+   */
+  async getPublicLandingPage(slug: string): Promise<{
+    agency: { id: string; name: string; slug: string };
+    sections: HydratedPageSection[];
+  }> {
+    const agency = await this.agencyRepository.findOne({
+      where: { slug: slug.toLowerCase() },
+    });
+
+    if (!agency) {
+      throw new NotFoundException(`Agency with slug '${slug}' not found.`);
+    }
+
+    const allSections = await this.getSections(agency.id);
+    const visibleSections = allSections.filter((s) => s.isVisible);
+
+    const hydratedSections: HydratedPageSection[] = [];
+
+    for (const sec of visibleSections) {
+      let content: Record<string, unknown> = {};
+
+      switch (sec.sectionKey) {
+        case PageSectionKey.MEDIA:
+          content = {
+            logoUrl: agency.logoUrl,
+            coverUrl: agency.coverUrl,
+          };
+          break;
+
+        case PageSectionKey.BASIC_INFO:
+          content = {
+            name: agency.name,
+            shortDescription: agency.shortDescription,
+            longDescription: agency.longDescription,
+          };
+          break;
+
+        case PageSectionKey.CONTACT:
+          content = {
+            phone: agency.phone,
+            email: agency.email,
+          };
+          break;
+
+        case PageSectionKey.ADDRESS:
+          content = {
+            city: agency.city,
+            address: agency.officeAddress,
+            latitude: agency.latitude,
+            longitude: agency.longitude,
+          };
+          break;
+
+        case PageSectionKey.WORKING_HOURS:
+          content = {
+            workingHours: agency.workingHours || [],
+          };
+          break;
+
+        case PageSectionKey.SOCIAL_MEDIA:
+          content = {
+            whatsapp: agency.whatsapp,
+            facebook: agency.facebook,
+            telegram: agency.telegram,
+            instagram: agency.instagram,
+            youtube: agency.youtube,
+            website: agency.website,
+          };
+          break;
+
+        case PageSectionKey.REVIEWS:
+          content = {
+            isReviewsEnabled: agency.isReviewsEnabled,
+            minReviewStars: agency.minReviewStars,
+            maxReviewsShown: agency.maxReviewsShown,
+          };
+          break;
+
+        case PageSectionKey.PACKAGES:
+          content = {
+            maxPackagesShown: agency.maxPackagesShown,
+            packagesSortBy: agency.packagesSortBy,
+          };
+          break;
+      }
+
+      hydratedSections.push({
+        key: sec.sectionKey,
+        sortOrder: sec.sortOrder,
+        content,
+      });
+    }
+
+    return {
+      agency: {
+        id: agency.id,
+        name: agency.name,
+        slug: agency.slug,
+      },
+      sections: hydratedSections,
+    };
   }
 }
