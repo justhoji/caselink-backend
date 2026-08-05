@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateAirportsAndAgencyProfileSchema1785845100000
-  implements MigrationInterface
-{
+export class CreateAirportsAndAgencyProfileSchema1785845100000 implements MigrationInterface {
   name = 'CreateAirportsAndAgencyProfileSchema1785845100000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

@@ -4,6 +4,8 @@ import { TourPackage } from '@/modules/packages/entities/tour-package.entity';
 import { Currency } from '@/modules/packages/enums/currency.enum';
 import { PricingType } from '@/modules/packages/enums/pricing-type.enum';
 import { HotelServiceType } from '@/modules/packages/enums/hotel-service-type.enum';
+import { MealOption } from '@/modules/packages/enums/meal-option.enum';
+import { RoomCategory } from '@/modules/packages/enums/room-category.enum';
 
 const decimalTransformer = {
   to: (value: number | null) => value,
@@ -20,6 +22,22 @@ export class PackageHotel extends BaseEntity {
 
   @Column({ type: 'int', default: 4 })
   stars!: number;
+
+  @Column({
+    name: 'meal_option',
+    type: 'enum',
+    enum: MealOption,
+    default: MealOption.ALL_INCLUSIVE,
+  })
+  mealOption!: MealOption;
+
+  @Column({
+    name: 'room_category',
+    type: 'enum',
+    enum: RoomCategory,
+    default: RoomCategory.STANDARD,
+  })
+  roomCategory!: RoomCategory;
 
   @Column({ name: 'room_type', nullable: true })
   roomType!: string;

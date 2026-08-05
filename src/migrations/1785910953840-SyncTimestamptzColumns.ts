@@ -193,27 +193,19 @@ export class SyncTimestamptzColumns1785910953840 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "refresh_tokens" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "users" DROP COLUMN "updated_at"`,
-    );
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "updated_at"`);
     await queryRunner.query(
       `ALTER TABLE "users" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "users" DROP COLUMN "created_at"`,
-    );
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "created_at"`);
     await queryRunner.query(
       `ALTER TABLE "users" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "agencies" DROP COLUMN "updated_at"`,
-    );
+    await queryRunner.query(`ALTER TABLE "agencies" DROP COLUMN "updated_at"`);
     await queryRunner.query(
       `ALTER TABLE "agencies" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "agencies" DROP COLUMN "created_at"`,
-    );
+    await queryRunner.query(`ALTER TABLE "agencies" DROP COLUMN "created_at"`);
     await queryRunner.query(
       `ALTER TABLE "agencies" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`,
     );
@@ -229,15 +221,11 @@ export class SyncTimestamptzColumns1785910953840 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE "agency_page_sections" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "otps" DROP COLUMN "updated_at"`,
-    );
+    await queryRunner.query(`ALTER TABLE "otps" DROP COLUMN "updated_at"`);
     await queryRunner.query(
       `ALTER TABLE "otps" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "otps" DROP COLUMN "created_at"`,
-    );
+    await queryRunner.query(`ALTER TABLE "otps" DROP COLUMN "created_at"`);
     await queryRunner.query(
       `ALTER TABLE "otps" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`,
     );

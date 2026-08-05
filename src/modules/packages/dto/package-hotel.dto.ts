@@ -13,6 +13,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Currency } from '@/modules/packages/enums/currency.enum';
 import { PricingType } from '@/modules/packages/enums/pricing-type.enum';
 import { HotelServiceType } from '@/modules/packages/enums/hotel-service-type.enum';
+import { MealOption } from '@/modules/packages/enums/meal-option.enum';
+import { RoomCategory } from '@/modules/packages/enums/room-category.enum';
 
 export class PackageHotelDto {
   @ApiProperty({
@@ -36,6 +38,26 @@ export class PackageHotelDto {
   stars!: number;
 
   @ApiProperty({
+    enum: MealOption,
+    example: MealOption.ALL_INCLUSIVE,
+    description:
+      'Required meal plan option (BED_AND_BREAKFAST, HALF_BOARD, FULL_BOARD, ALL_INCLUSIVE, ULTRA_ALL_INCLUSIVE)',
+  })
+  @IsEnum(MealOption)
+  @IsNotEmpty()
+  mealOption!: MealOption;
+
+  @ApiProperty({
+    enum: RoomCategory,
+    example: RoomCategory.DELUXE,
+    description:
+      'Required suite/room category (STANDARD, SUPERIOR, DELUXE, SUITE, APARTMENT)',
+  })
+  @IsEnum(RoomCategory)
+  @IsNotEmpty()
+  roomCategory!: RoomCategory;
+
+  @ApiProperty({
     example: 'https://www.rixos.com/en/hotel-resort/rixos-sharm-el-sheikh',
     description: 'Direct link to hotel website or booking page',
   })
@@ -45,7 +67,7 @@ export class PackageHotelDto {
 
   @ApiPropertyOptional({
     example: 'Deluxe Sea View Room',
-    description: 'Room category',
+    description: 'Specific room type description',
   })
   @IsOptional()
   @IsString()
@@ -53,7 +75,7 @@ export class PackageHotelDto {
 
   @ApiPropertyOptional({
     example: 'Ultra All Inclusive',
-    description: 'Meal plan',
+    description: 'Additional meal plan text description',
   })
   @IsOptional()
   @IsString()
