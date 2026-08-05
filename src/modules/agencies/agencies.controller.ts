@@ -6,15 +6,18 @@ import {
   UseGuards,
   UseInterceptors,
   Request,
+  ParseArrayPipe,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { AgenciesService } from '@/modules/agencies/agencies.service';
 import { UpdateAgencyProfileDto } from '@/modules/agencies/dto/update-agency-profile.dto';
+import { PageSectionItemDto } from '@/modules/agencies/dto/update-page-sections.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { Roles, RolesGuard } from '@/modules/auth/guards/roles.guard';
 import { StaffRole } from '@/modules/auth/enums/staff-role.enum';
@@ -28,7 +31,7 @@ interface AuthenticatedRequest {
   };
 }
 
-@ApiTags('Admin Panel — Agency Profile')
+@ApiTags('Admin Panel — Agency Profile & Page Layout Builder')
 @ApiBearerAuth()
 @Controller('admin/agency')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -40,7 +43,7 @@ export class AgenciesController {
   @ApiOperation({
     summary: 'Get current agency profile',
     description:
-      'Retrieves the full agency profile details (branding, contact, office location, working hours, social channels, review settings, and package visibility settings).',
+      'Retrieves full agency profile details (branding, contact, office location, working hours, social channels, review settings, and package visibility settings).',
   })
   @ApiResponse({
     status: 200,
@@ -83,5 +86,59 @@ export class AgenciesController {
     @Body() dto: UpdateAgencyProfileDto,
   ) {
     return this.agenciesService.updateProfile(req.user.agencyId, dto);
+  }
+
+  @Get('sections')
+  @ApiOperation({
+    summary: 'Get agency landing page section order & visibility',
+    description:
+      'Retrieves the list of 8 landing page sections (MEDIA, BASIC_INFO, CONTACT, ADDRESS, WORKING_HOURS, SOCIAL_MEDIA, REVIEWS, PACKAGES) ordered by sortOrder.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Section layout configuration retrieved successfully.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized — Missing or invalid bearer token.',
+  })
+  getSections(@Request() req: AuthenticatedRequest) {
+    return this.agenciesService.getSections(req.user.agencyId);
+  }
+
+  @Patch('sections')
+  @Roles(StaffRole.OWNER, StaffRole.MANAGER)
+  @ApiOperation({
+    summary:
+      'Update agency landing page section order & visibility (OWNER / MANAGER)',
+    description:
+      'Atomically updates display order (sortOrder) and visibility (isVisible) for all landing page sections.',
+  })
+  @ApiBody({
+    type: [PageSectionItemDto],
+    description: 'Array of section configurations',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Section layout configuration updated successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request — Validation error.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized — Missing or invalid bearer token.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden — Insufficient role permissions.',
+  })
+  updateSections(
+    @Request() req: AuthenticatedRequest,
+    @Body(new ParseArrayPipe({ items: PageSectionItemDto }))
+    dtos: PageSectionItemDto[],
+  ) {
+    return this.agenciesService.updateSections(req.user.agencyId, dtos);
   }
 }

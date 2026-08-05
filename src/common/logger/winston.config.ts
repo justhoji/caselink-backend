@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
 import { format, transports } from 'winston';
 import type { WinstonModuleOptions } from 'nest-winston';
 
@@ -18,14 +19,15 @@ const devFormat = combine(
   timestamp({ format: 'YYYY-MM-DDTHH:mm:ss.SSSZ' }),
   errors({ stack: true }),
   splat(),
-  printf(({ level, message, timestamp, context, stack, ...meta }) => {
-    const ctx = context ? `[${context}]` : '';
+  printf(({ level, message, timestamp: timeVal, context, stack, ...meta }) => {
+    const ctx = typeof context === 'string' ? `[${context}]` : '';
     const extra =
-      Object.keys(meta).length > 0
-        ? `\n${JSON.stringify(meta, null, 2)}`
-        : '';
-    const stackTrace = stack ? `\n${stack}` : '';
-    return `${timestamp}  ${level.padEnd(17)}  ${ctx} ${message}${extra}${stackTrace}`;
+      Object.keys(meta).length > 0 ? `\n${JSON.stringify(meta, null, 2)}` : '';
+    const stackTrace = typeof stack === 'string' ? `\n${stack}` : '';
+    const timeStr = String(timeVal ?? '');
+    const msgStr = String(message ?? '');
+    const levelStr = String(level).padEnd(17);
+    return `${timeStr}  ${levelStr}  ${ctx} ${msgStr}${extra}${stackTrace}`;
   }),
 );
 

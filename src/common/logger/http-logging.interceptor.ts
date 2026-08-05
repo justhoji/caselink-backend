@@ -52,10 +52,7 @@ export class HttpLoggingInterceptor implements NestInterceptor {
         next: () => {
           const ms = Date.now() - startedAt;
           const { statusCode } = res;
-          this.logger.log(
-            `← ${method} ${url} ${statusCode} ${ms}ms`,
-            CONTEXT,
-          );
+          this.logger.log(`← ${method} ${url} ${statusCode} ${ms}ms`, CONTEXT);
         },
 
         // ── Error response (4xx / 5xx) ───────────────────────────────────────
@@ -65,11 +62,10 @@ export class HttpLoggingInterceptor implements NestInterceptor {
             err != null &&
             typeof err === 'object' &&
             'status' in err &&
-            typeof (err as { status: unknown }).status === 'number'
+            typeof err.status === 'number'
               ? (err as { status: number }).status
               : 500;
-          const message =
-            err instanceof Error ? err.message : String(err);
+          const message = err instanceof Error ? err.message : String(err);
           const stack = err instanceof Error ? err.stack : undefined;
 
           if (status >= 500) {
