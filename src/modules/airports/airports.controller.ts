@@ -2,6 +2,7 @@ import { Controller, Get, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AirportsService } from '@/modules/airports/airports.service';
 import { QueryAirportsDto } from '@/modules/airports/dto/query-airports.dto';
+import { AirportResponseDto } from '@/modules/airports/dto/airport-response.dto';
 
 @ApiTags('Airports')
 @Controller('airports')
@@ -17,6 +18,7 @@ export class AirportsController {
   })
   @ApiResponse({
     status: 200,
+    type: [AirportResponseDto],
     description: 'List of matching airports retrieved successfully.',
   })
   searchAirports(@Query() query: QueryAirportsDto) {
