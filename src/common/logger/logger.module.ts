@@ -1,6 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import { winstonConfig } from './winston.config';
+import { HttpLoggingInterceptor } from './http-logging.interceptor';
 
 /**
  * GlobalLoggerModule — registers the Winston-backed NestJS logger globally.
@@ -10,6 +11,7 @@ import { winstonConfig } from './winston.config';
 @Global()
 @Module({
   imports: [WinstonModule.forRoot(winstonConfig)],
-  exports: [WinstonModule],
+  providers: [HttpLoggingInterceptor],
+  exports: [WinstonModule, HttpLoggingInterceptor],
 })
 export class LoggerModule {}
