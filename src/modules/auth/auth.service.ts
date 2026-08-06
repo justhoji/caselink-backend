@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { User } from '@/modules/auth/entities/user.entity';
 import { Otp } from '@/modules/auth/entities/otp.entity';
+import { UserInvite } from '@/modules/auth/entities/user-invite.entity';
 import { Agency } from '@/modules/agencies/entities/agency.entity';
 import { RegisterSendOtpDto } from '@/modules/auth/dto/register-send-otp.dto';
 import { RegisterVerifyOtpDto } from '@/modules/auth/dto/register-verify-otp.dto';
@@ -23,8 +24,10 @@ import { SendOtpDto } from '@/modules/auth/dto/send-otp.dto';
 import { LoginOtpDto } from '@/modules/auth/dto/login-otp.dto';
 import { ResetPasswordDto } from '@/modules/auth/dto/reset-password.dto';
 import { RefreshTokenDto } from '@/modules/auth/dto/refresh-token.dto';
+import { AcceptInviteDto } from '@/modules/auth/dto/accept-invite.dto';
 import { StaffRole } from '@/modules/auth/enums/staff-role.enum';
 import { OtpType } from '@/modules/auth/enums/otp-type.enum';
+import { InviteStatus } from '@/modules/auth/enums/invite-status.enum';
 import { TokenService } from '@/modules/auth/services/token.service';
 import { EmailService } from '@/modules/email/email.service';
 import { SmsService } from '@/modules/sms/sms.service';
@@ -36,6 +39,8 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Otp)
     private readonly otpRepository: Repository<Otp>,
+    @InjectRepository(UserInvite)
+    private readonly inviteRepository: Repository<UserInvite>,
     @InjectRepository(Agency)
     private readonly agencyRepository: Repository<Agency>,
     private readonly tokenService: TokenService,
@@ -600,5 +605,155 @@ export class AuthService {
   async logout(userId: string) {
     await this.tokenService.revokeUserTokens(userId);
     return { message: 'Logged out successfully.' };
+  }
+
+  /**
+   * Retrieves public details of a team invitation by token for invited user verification
+   */
+  async getInviteInfo(token: string): Promise<{
+    email: string;
+    role: StaffRole;
+    agencyName: string;
+    expiresAt: Date;
+  }> {
+    const cleanToken = (token || '').trim();
+    const invite = await this.inviteRepository.findOne({
+      where: { token: cleanToken },
+      relations: { agency: true },
+    });
+
+    if (!invite) {
+      throw new NotFoundException(
+        'Invitation token not found. Please check that you copied the complete token.',
+      );
+    }
+
+    if (invite.status === InviteStatus.ACCEPTED) {
+      throw new BadRequestException(
+        'This invitation has already been accepted and activated.',
+      );
+    }
+
+    if (invite.status === InviteStatus.REVOKED) {
+      throw new BadRequestException(
+        'This invitation was revoked because a newer invitation was issued for this email.',
+      );
+    }
+
+    if (
+      invite.status === InviteStatus.EXPIRED ||
+      new Date(invite.expiresAt) < new Date()
+    ) {
+      if (invite.status !== InviteStatus.EXPIRED) {
+        invite.status = InviteStatus.EXPIRED;
+        await this.inviteRepository.save(invite);
+      }
+      throw new BadRequestException(
+        'This invitation token has expired. Please request a new invitation from your agency owner.',
+      );
+    }
+
+    return {
+      email: invite.email,
+      role: invite.role,
+      agencyName: invite.agency.name,
+      expiresAt: invite.expiresAt,
+    };
+  }
+
+  /**
+   * Completes invited member account creation and issues authentication tokens
+   */
+  async acceptInvite(dto: AcceptInviteDto) {
+    const cleanToken = (dto.token || '').trim();
+    const invite = await this.inviteRepository.findOne({
+      where: { token: cleanToken },
+      relations: { agency: true },
+    });
+
+    if (!invite) {
+      throw new NotFoundException(
+        'Invitation token not found. Please check that you copied the complete token.',
+      );
+    }
+
+    if (invite.status === InviteStatus.ACCEPTED) {
+      throw new BadRequestException(
+        'This invitation has already been accepted and activated.',
+      );
+    }
+
+    if (invite.status === InviteStatus.REVOKED) {
+      throw new BadRequestException(
+        'This invitation was revoked because a newer invitation was issued for this email.',
+      );
+    }
+
+    if (
+      invite.status === InviteStatus.EXPIRED ||
+      new Date(invite.expiresAt) < new Date()
+    ) {
+      if (invite.status !== InviteStatus.EXPIRED) {
+        invite.status = InviteStatus.EXPIRED;
+        await this.inviteRepository.save(invite);
+      }
+      throw new BadRequestException(
+        'This invitation token has expired. Please request a new invitation from your agency owner.',
+      );
+    }
+
+    const cleanEmail = invite.email.toLowerCase().trim();
+
+    // Verify user doesn't already exist for this agency
+    const existingUser = await this.userRepository.findOne({
+      where: { email: cleanEmail, agencyId: invite.agencyId },
+    });
+    if (existingUser) {
+      throw new BadRequestException(
+        'A team member with this email address already exists.',
+      );
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const passwordHash = await bcrypt.hash(dto.password, 10);
+
+      // Create staff user
+      const user = manager.create(User, {
+        agencyId: invite.agencyId,
+        firstName: dto.firstName.trim(),
+        lastName: dto.lastName.trim(),
+        email: cleanEmail,
+        passwordHash,
+        role: invite.role,
+        isEmailVerified: true,
+        isPhoneVerified: false,
+      });
+
+      const savedUser = await manager.save(User, user);
+
+      // Mark invite status as ACCEPTED
+      invite.status = InviteStatus.ACCEPTED;
+      await manager.save(UserInvite, invite);
+
+      // Issue access and refresh tokens inside the active transaction
+      const tokens = await this.tokenService.generateTokenPair(
+        savedUser,
+        undefined,
+        manager,
+      );
+
+      return {
+        message: 'Account setup completed successfully. Welcome to the team!',
+        user: {
+          id: savedUser.id,
+          agencyId: savedUser.agencyId,
+          firstName: savedUser.firstName,
+          lastName: savedUser.lastName,
+          email: savedUser.email,
+          role: savedUser.role,
+        },
+        tokens,
+      };
+    });
   }
 }

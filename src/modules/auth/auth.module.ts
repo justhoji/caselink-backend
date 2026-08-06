@@ -6,6 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { User } from '@/modules/auth/entities/user.entity';
 import { Otp } from '@/modules/auth/entities/otp.entity';
 import { RefreshToken } from '@/modules/auth/entities/refresh-token.entity';
+import { UserInvite } from '@/modules/auth/entities/user-invite.entity';
 import { Agency } from '@/modules/agencies/entities/agency.entity';
 import { AuthService } from '@/modules/auth/auth.service';
 import { AuthController } from '@/modules/auth/auth.controller';
@@ -16,7 +17,7 @@ import { SmsModule } from '@/modules/sms/sms.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Otp, RefreshToken, Agency]),
+    TypeOrmModule.forFeature([User, Otp, RefreshToken, UserInvite, Agency]),
     PassportModule,
     EmailModule,
     SmsModule,

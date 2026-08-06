@@ -26,6 +26,7 @@ import { LoginOtpDto } from '@/modules/auth/dto/login-otp.dto';
 import { ForgotPasswordDto } from '@/modules/auth/dto/forgot-password.dto';
 import { ResetPasswordDto } from '@/modules/auth/dto/reset-password.dto';
 import { RefreshTokenDto } from '@/modules/auth/dto/refresh-token.dto';
+import { AcceptInviteDto } from '@/modules/auth/dto/accept-invite.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 
 interface AuthenticatedRequest {
@@ -258,5 +259,46 @@ export class AuthController {
   })
   logout(@Request() req: AuthenticatedRequest) {
     return this.authService.logout(req.user.userId);
+  }
+
+  @Get('invite/:token')
+  @ApiOperation({
+    summary: 'Validate team invitation token (Public)',
+    description:
+      'Checks if a team invitation token is valid and returns email, role, and agency name.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Invitation token valid. Returns invitation details.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request — Token has expired.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Not Found — Invalid token.',
+  })
+  getInviteInfo(@Param('token') token: string) {
+    return this.authService.getInviteInfo(token);
+  }
+
+  @HttpCode(HttpStatus.CREATED)
+  @Post('invite/accept')
+  @ApiOperation({
+    summary: 'Accept team invitation & create staff account (Public)',
+    description:
+      'Creates the invited member staff account, sets password, marks invitation as ACCEPTED, and returns auth tokens.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Staff account created successfully. Returns JWT tokens.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request — Invalid or expired token, or validation error.',
+  })
+  acceptInvite(@Body() dto: AcceptInviteDto) {
+    return this.authService.acceptInvite(dto);
   }
 }

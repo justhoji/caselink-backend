@@ -9,6 +9,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { OtpType } from '@/modules/auth/enums/otp-type.enum';
 import { getOtpEmailTemplate } from './templates/otp.template';
+import { getTeamInviteEmailTemplate } from './templates/invite.template';
 
 @Injectable()
 export class EmailService {
@@ -80,6 +81,57 @@ export class EmailService {
       );
       throw new InternalServerErrorException(
         'Failed to send verification email. Please try again later.',
+      );
+    }
+  }
+
+  /**
+   * Sends a team invitation email with magic setup link
+   */
+  async sendTeamInviteEmail(
+    toEmail: string,
+    agencyName: string,
+    role: string,
+    token: string,
+    inviterName: string,
+  ): Promise<boolean> {
+    const rawHost = this.configService.get<string>('HOST');
+    const port = this.configService.get<number>('PORT', 3000);
+    const host = rawHost
+      ? rawHost.trim().replace(/\/+$/, '')
+      : `http://localhost:${port}`;
+
+    const inviteLink = `${host}/accept-invite?token=${token}`;
+    const subject = `You've been invited to join ${agencyName} on Caselink`;
+
+    const htmlContent = getTeamInviteEmailTemplate(
+      agencyName,
+      role,
+      inviteLink,
+      inviterName,
+    );
+
+    const fromAddress = this.configService.get<string>(
+      'EMAIL_FROM',
+      'Caselink <noreply@caselink.uz>',
+    );
+
+    try {
+      await this.mailerService.sendMail({
+        to: toEmail,
+        from: fromAddress,
+        subject,
+        html: htmlContent,
+      });
+      return true;
+    } catch (err: unknown) {
+      this.logger.error(
+        `Failed to send team invite email to ${toEmail}`,
+        err instanceof Error ? err.stack : String(err),
+        EmailService.name,
+      );
+      throw new InternalServerErrorException(
+        'Failed to send invitation email. Please try again later.',
       );
     }
   }
