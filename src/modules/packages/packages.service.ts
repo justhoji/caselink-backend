@@ -14,7 +14,16 @@ import { PackageExtra } from '@/modules/packages/entities/package-extra.entity';
 import { CreateTourPackageDto } from '@/modules/packages/dto/create-tour-package.dto';
 import { UpdateTourPackageDto } from '@/modules/packages/dto/update-tour-package.dto';
 import { QueryTourPackagesDto } from '@/modules/packages/dto/query-tour-packages.dto';
+import { PackageSectionConfigDto } from '@/modules/packages/dto/package-section-config.dto';
+import { PackageSectionKey } from '@/modules/packages/enums/package-section-key.enum';
 import { TenantContextService } from '@/common/tenant/tenant-context.service';
+
+const DEFAULT_PACKAGE_SECTIONS: PackageSectionConfigDto[] = [
+  { key: PackageSectionKey.HOTELS, sortOrder: 1, isVisible: true },
+  { key: PackageSectionKey.FLIGHTS, sortOrder: 2, isVisible: true },
+  { key: PackageSectionKey.EXTRAS, sortOrder: 3, isVisible: true },
+  { key: PackageSectionKey.MEDIA, sortOrder: 4, isVisible: true },
+];
 
 @Injectable()
 export class PackagesService {
@@ -76,6 +85,9 @@ export class PackagesService {
         destination: dto.destination,
         coverImageUrl: dto.coverImageUrl,
         description: dto.description,
+        sectionsOrder: dto.sectionsOrder?.length
+          ? dto.sectionsOrder
+          : DEFAULT_PACKAGE_SECTIONS,
         isPublished: dto.isPublished ?? false,
         isFeatured: dto.isFeatured ?? false,
         isArchived: dto.isArchived ?? false,

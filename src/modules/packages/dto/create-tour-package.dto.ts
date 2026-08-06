@@ -13,6 +13,7 @@ import { PackageHotelDto } from '@/modules/packages/dto/package-hotel.dto';
 import { PackageMediaDto } from '@/modules/packages/dto/package-media.dto';
 import { PackageFlightDto } from '@/modules/packages/dto/package-flight.dto';
 import { PackageExtraDto } from '@/modules/packages/dto/package-extra.dto';
+import { PackageSectionConfigDto } from '@/modules/packages/dto/package-section-config.dto';
 
 export class CreateTourPackageDto {
   @ApiProperty({
@@ -84,6 +85,17 @@ export class CreateTourPackageDto {
   @IsOptional()
   @IsBoolean()
   isArchived?: boolean;
+
+  @ApiPropertyOptional({
+    type: [PackageSectionConfigDto],
+    description:
+      'Custom re-orderable section sequence & visibility for public page (HOTELS, FLIGHTS, EXTRAS, MEDIA)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PackageSectionConfigDto)
+  sectionsOrder?: PackageSectionConfigDto[];
 
   @ApiPropertyOptional({
     type: [PackageHotelDto],

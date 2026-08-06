@@ -5,6 +5,8 @@ import { PackageMedia } from '@/modules/packages/entities/package-media.entity';
 import { PackageFlight } from '@/modules/packages/entities/package-flight.entity';
 import { PackageExtra } from '@/modules/packages/entities/package-extra.entity';
 
+import { PackageSectionConfigDto } from '@/modules/packages/dto/package-section-config.dto';
+
 @Entity('tour_packages')
 export class TourPackage extends TenantBaseEntity {
   @Column()
@@ -23,6 +25,9 @@ export class TourPackage extends TenantBaseEntity {
   // Unified Description
   @Column({ type: 'text', nullable: true })
   description!: string;
+
+  @Column({ type: 'jsonb', name: 'sections_order', nullable: true })
+  sectionsOrder!: PackageSectionConfigDto[];
 
   @Column({ name: 'is_published', default: false })
   isPublished!: boolean;
