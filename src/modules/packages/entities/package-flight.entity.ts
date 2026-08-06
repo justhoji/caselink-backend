@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '@/common/database/base.entity';
 import { TourPackage } from '@/modules/packages/entities/tour-package.entity';
+import { FlightClass } from '@/modules/packages/enums/flight-class.enum';
 
 @Entity('package_flights')
 export class PackageFlight extends BaseEntity {
@@ -12,6 +13,14 @@ export class PackageFlight extends BaseEntity {
 
   @Column({ name: 'flight_number', nullable: true })
   flightNumber!: string;
+
+  @Column({
+    name: 'flight_class',
+    type: 'enum',
+    enum: FlightClass,
+    default: FlightClass.ECONOMY,
+  })
+  flightClass!: FlightClass;
 
   @Column({ name: 'departure_airport' })
   departureAirport!: string;

@@ -4,8 +4,10 @@ import {
   IsOptional,
   IsBoolean,
   IsDateString,
+  IsEnum,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { FlightClass } from '@/modules/packages/enums/flight-class.enum';
 
 export class PackageFlightDto {
   @ApiProperty({ example: 'Uzbekistan Airways', description: 'Airline name' })
@@ -17,6 +19,15 @@ export class PackageFlightDto {
   @IsOptional()
   @IsString()
   flightNumber?: string;
+
+  @ApiPropertyOptional({
+    enum: FlightClass,
+    example: FlightClass.ECONOMY,
+    description: 'Cabin flight class (ECONOMY, BUSINESS, FIRST)',
+  })
+  @IsOptional()
+  @IsEnum(FlightClass)
+  flightClass?: FlightClass;
 
   @ApiProperty({
     example: 'TAS (Tashkent)',
