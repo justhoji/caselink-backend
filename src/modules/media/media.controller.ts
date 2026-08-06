@@ -29,11 +29,19 @@ import { StorageService } from './storage.service';
 import type { Express } from 'express';
 
 const ALLOWED_MIME_TYPES = [
+  // Images
   'image/jpeg',
   'image/png',
   'image/webp',
   'image/gif',
   'image/svg+xml',
+  // Videos
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+  'video/x-msvideo',
+  'video/x-matroska',
+  'video/3gpp',
 ];
 
 const multerFileFilter = (
@@ -65,9 +73,9 @@ export class MediaController {
   @Post('upload')
   @Roles(StaffRole.OWNER, StaffRole.MANAGER)
   @ApiOperation({
-    summary: 'Upload a single agency image file (max 10 MB)',
+    summary: 'Upload a single agency media file (image or video, max 100 MB)',
     description:
-      'Uploads an image file to agency-isolated local disk storage and returns a public URL.',
+      'Uploads an image or video file to agency-isolated local disk storage and returns a public URL.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -92,7 +100,7 @@ export class MediaController {
   })
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit
       fileFilter: multerFileFilter,
     }),
   )
@@ -106,9 +114,9 @@ export class MediaController {
   @Post('upload-batch')
   @Roles(StaffRole.OWNER, StaffRole.MANAGER)
   @ApiOperation({
-    summary: 'Upload multiple agency image files (max 10 files, 10 MB each)',
+    summary: 'Upload multiple agency media files (max 10 files, 100 MB each)',
     description:
-      'Uploads multiple image files to agency-isolated local disk storage and returns public URLs.',
+      'Uploads multiple image/video files to agency-isolated local disk storage and returns public URLs.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -133,7 +141,7 @@ export class MediaController {
   })
   @UseInterceptors(
     FilesInterceptor('files', 10, {
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit
       fileFilter: multerFileFilter,
     }),
   )

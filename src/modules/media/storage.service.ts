@@ -18,12 +18,20 @@ export interface StoredFileResult {
 }
 
 const MIME_TYPE_MAP: Record<string, string> = {
+  // Images
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
   '.webp': 'image/webp',
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
+  // Videos
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.avi': 'video/x-msvideo',
+  '.mkv': 'video/x-matroska',
+  '.3gp': 'video/3gpp',
 };
 
 @Injectable()
