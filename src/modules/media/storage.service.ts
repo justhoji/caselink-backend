@@ -41,7 +41,7 @@ export class StorageService {
 
   private buildPublicUrl(filename: string): string {
     const agencyId = this.tenantContextService.getRequiredAgencyId();
-    return `uploads/agencies/${agencyId}/${filename}`;
+    return `/uploads/agencies/${agencyId}/${filename}`;
   }
 
   /**
