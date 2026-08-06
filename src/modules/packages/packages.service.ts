@@ -190,6 +190,18 @@ export class PackagesService {
       });
     }
 
+    if (query.startDate) {
+      qb.andWhere('pkg.start_date >= :startDate', {
+        startDate: query.startDate,
+      });
+    }
+
+    if (query.endDate) {
+      qb.andWhere('pkg.end_date <= :endDate', {
+        endDate: query.endDate,
+      });
+    }
+
     if (query.currency) {
       qb.andWhere('hotels.currency = :currency', { currency: query.currency });
     }

@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsEnum,
   IsNumber,
+  IsDateString,
   Min,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
@@ -38,6 +39,22 @@ export class QueryTourPackagesDto {
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   isArchived?: boolean;
+
+  @ApiPropertyOptional({
+    example: '2026-09-01',
+    description: 'Filter packages starting on or after this date (YYYY-MM-DD)',
+  })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-09-30',
+    description: 'Filter packages ending on or before this date (YYYY-MM-DD)',
+  })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
 
   @ApiPropertyOptional({
     enum: Currency,
