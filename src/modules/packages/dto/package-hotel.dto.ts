@@ -66,6 +66,15 @@ export class PackageHotelDto {
   link!: string;
 
   @ApiPropertyOptional({
+    example:
+      '/uploads/agencies/6497f1f9-9689-4977-bc60-d2634e3a4794/hotel_cover.jpg',
+    description: 'Public URL or path to hotel image',
+  })
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @ApiPropertyOptional({
     example: 'Deluxe Sea View Room',
     description: 'Specific room type description',
   })

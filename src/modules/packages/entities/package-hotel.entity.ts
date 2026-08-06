@@ -51,6 +51,9 @@ export class PackageHotel extends BaseEntity {
   @Column({ nullable: true })
   link!: string;
 
+  @Column({ name: 'image_url', nullable: true })
+  imageUrl?: string;
+
   @Column({
     type: 'decimal',
     precision: 3,
